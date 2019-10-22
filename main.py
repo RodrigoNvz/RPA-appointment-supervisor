@@ -1,4 +1,4 @@
-import asyncio, os, time, datetime
+import asyncio, os, time, datetime, pyppeteer
 from pyppeteer import launch
 
 #Automate appointment version 2
@@ -65,8 +65,6 @@ async def puppet():
         now = datetime.datetime.now()
         print('\n\n\n\n\n ***** SUCCESSFULL ', now.strftime("%Y-%m-%d %H:%M"), ' ***** \n\n\n\n\n')
 
-
-
 #Method automatized login
 async def login(page,retries=0):  
     if retries > 10:
@@ -81,9 +79,9 @@ async def login(page,retries=0):
             await page.type("[name='userpassword']", passwd)
             await page.click("[name='submitbutton']")
             await page.waitFor(2000)
-        except:
-        #except pyppeteer.errors.NetworkError:
-            #await asyncio.sleep(1)
+        #except:
+        except pyppeteer.errors.NetworkError:
+            await asyncio.sleep(1)
             print("You should't be here")
             await login(page, retries+1)
 
@@ -122,11 +120,11 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate, retries=0):
             await frame.close()
             await page.close()
             print("SUCCESS-----")
-        except:
-        #except pyppeteer.errors.NetworkError:
-            #await asyncio.sleep(1)
+        #except:
+        except pyppeteer.errors.NetworkError:
+            await asyncio.sleep(1)
             print("You should't be here")
-            #await captureOTM(page,cR,appointI,firstDate,lateDate, retries=0)
+            await captureOTM(page,cR,appointI,firstDate,lateDate, retries+1)
 
 async def main():
     for i in range(3):
@@ -140,7 +138,7 @@ async def main():
         try:
             await captureOTM(page,cR,len(cR),firstDate,lateDate,retries)
         except:
-            print("FAILED IN CAPTURE DATA----")  
+            print("FAILED IN CAPTURE DATA----")        
                 
 asyncio.get_event_loop().run_until_complete(puppet())            
 asyncio.get_event_loop().run_until_complete(main())
