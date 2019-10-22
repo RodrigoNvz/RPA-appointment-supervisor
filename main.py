@@ -69,7 +69,7 @@ async def puppet():
 async def login(page,retries=0):  
     if retries > 10:
         print("10 reintentos fallidos")
-        #return await page.evaluate('document.body.innerHTML')
+        return await page.evaluate('document.body.innerHTML')
     else:
         try:
             await page.setViewport({ 'width':1200, 'height':720})
@@ -79,17 +79,16 @@ async def login(page,retries=0):
             await page.type("[name='userpassword']", passwd)
             await page.click("[name='submitbutton']")
             await page.waitFor(2000)
-        #except:
         except pyppeteer.errors.NetworkError:
-            await asyncio.sleep(1)
+            #await asyncio.sleep(2)
             print("You should't be here")
-            await login(page, retries+1)
+            return await login(page, retries+1)
 
 #Start capture of appointments in OTM
 async def captureOTM(page,cR,appointI,firstDate, lateDate, retries=0):
     if retries > 10:
         print("10 reintentos fallidos")
-        #return await page.evaluate('document.body.innerHTML')
+        return await page.evaluate('document.body.innerHTML')
     else:
         try:
             for i in range(appointI):
@@ -100,7 +99,7 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate, retries=0):
                 await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
                 await page.click("[name='rgSGSec.1.1.1.1.check']")
                 await page.click("[id='rgMassUpdateImg']") 
-                #await page.waitFor(2000)
+                await page.waitFor(2000)
                 frame = page.frames[3]    
                 await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
                 checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
@@ -113,32 +112,36 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate, retries=0):
                     await frame.type("[name='order_release/early_delivery_date']",firstDate)
                     await frame.type("[name='order_release/late_delivery_date']",lateDate)
                     await frame.click("[name='order_release/delivery_is_appt']")
-                appointI +=1   
-                print("appointment:",i," success") 
-            await frame.waitFor(10000)
-            await page.waitFor(10000)
-            await frame.close()
-            await page.close()
+                #appointI +=1   
+                #print("appointment:",i," success") 
+                #await frame.waitFor(1000)
+                #await page.waitFor(1000)
+            #await frame.close()
+            #await page.close()
             print("SUCCESS-----")
-        #except:
         except pyppeteer.errors.NetworkError:
-            await asyncio.sleep(1)
+            #await asyncio.sleep(2)
             print("You should't be here")
-            await captureOTM(page,cR,appointI,firstDate,lateDate, retries+1)
+            return await captureOTM(page,cR,appointI,firstDate,lateDate, retries+1)
 
 async def main():
     for i in range(3):
         browser = await launch(headless=False)  #headless false means open the browser in the operation
         page = await browser.newPage()
         retries=0 
-        try:
-            await login(page,retries)
-        except: 
-            print("FAILED IN LOGIN----")        
-        try:
-            await captureOTM(page,cR,len(cR),firstDate,lateDate,retries)
-        except:
-            print("FAILED IN CAPTURE DATA----")        
+        # try:
+        #     await login(page,retries)
+        # except: 
+        #     print("FAILED IN LOGIN----")        
+        # try:
+        #     await captureOTM(page,cR,len(cR),firstDate,lateDate,retries)
+        # except:
+        #     print("FAILED IN CAPTURE DATA----")   
+        await login(page,retries)
+        await captureOTM(page,cR,len(cR),firstDate,lateDate,retries)
+    await page.waitFor(1000)
+    await page.close()     
+                    
                 
 asyncio.get_event_loop().run_until_complete(puppet())            
 asyncio.get_event_loop().run_until_complete(main())
