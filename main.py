@@ -68,70 +68,79 @@ async def puppet():
 
 
 #Method automatized login
-async def login(page):  
-    await page.setViewport({ 'width':1200, 'height':720})
-    await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
-    await page.waitFor("[name='submitbutton']") # wait for the login button to continue
-    await page.type("[name='username']", usern)
-    await page.type("[name='userpassword']", passwd)
-    await page.click("[name='submitbutton']")
-    await page.waitFor(1000)
-
-#Step 1 of appointment order realease
-async def step1(page,cR):
-    await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
-    await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
-    await page.type("[name='orrOrderReleaseRefnumValue59']",cR)
-    await page.keyboard.press('Enter')
-    await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
-    await page.click("[name='rgSGSec.1.1.1.1.check']")
-    await page.click("[id='rgMassUpdateImg']") 
-    await page.waitFor(1000)
-
-#Step 2 of appointment Mass Update 
-async def step2(page,cR,firstDate,LateDate):
-    frame = page.frames[3]    
-    await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
-    checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
-    buttonstatus=await(await checked.getProperty('checked')).jsonValue()
-    #print(buttonstatus)
-    if buttonstatus==True:
-        await frame.type("[name='order_release/late_delivery_date']",LateDate)
+async def login(page,retries=0):  
+    if retries > 10:
+        print("10 reintentos fallidos")
+        #return await page.evaluate('document.body.innerHTML')
     else:
-        await frame.type("[name='order_release/ship_with_group']",cR)
-        await frame.type("[name='order_release/early_delivery_date']",firstDate)
-        await frame.type("[name='order_release/late_delivery_date']",LateDate)
-        await frame.click("[name='order_release/delivery_is_appt']")
-    await frame.waitFor(1000)
+        try:
+            await page.setViewport({ 'width':1200, 'height':720})
+            await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
+            await page.waitFor("[name='submitbutton']") # wait for the login button to continue
+            await page.type("[name='username']", usern)
+            await page.type("[name='userpassword']", passwd)
+            await page.click("[name='submitbutton']")
+            await page.waitFor(2000)
+        except:
+        #except pyppeteer.errors.NetworkError:
+            #await asyncio.sleep(1)
+            print("You should't be here")
+            await login(page, retries+1)
+
+#Start capture of appointments in OTM
+async def captureOTM(page,cR,appointI,firstDate, lateDate, retries=0):
+    if retries > 10:
+        print("10 reintentos fallidos")
+        #return await page.evaluate('document.body.innerHTML')
+    else:
+        try:
+            for i in range(appointI):
+                await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
+                await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
+                await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
+                await page.keyboard.press('Enter')
+                await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
+                await page.click("[name='rgSGSec.1.1.1.1.check']")
+                await page.click("[id='rgMassUpdateImg']") 
+                #await page.waitFor(2000)
+                frame = page.frames[3]    
+                await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
+                checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
+                buttonstatus=await(await checked.getProperty('checked')).jsonValue()
+                #print(buttonstatus)
+                if buttonstatus==True:
+                    await frame.type("[name='order_release/late_delivery_date']",lateDate)
+                else:
+                    await frame.type("[name='order_release/ship_with_group']",cR[i])
+                    await frame.type("[name='order_release/early_delivery_date']",firstDate)
+                    await frame.type("[name='order_release/late_delivery_date']",lateDate)
+                    await frame.click("[name='order_release/delivery_is_appt']")
+                appointI +=1   
+                print("appointment:",i," success") 
+            await frame.waitFor(10000)
+            await page.waitFor(10000)
+            await frame.close()
+            await page.close()
+            print("SUCCESS-----")
+        except:
+        #except pyppeteer.errors.NetworkError:
+            #await asyncio.sleep(1)
+            print("You should't be here")
+            #await captureOTM(page,cR,appointI,firstDate,lateDate, retries=0)
 
 async def main():
-    browser = await launch(headless=False)  #headless false means open the browser in the operation
-    page = await browser.newPage()
-    for i in range (len(cR)):
-        while True:
-            try:
-                await login(page)
-                #print("Vas bien")
-                break
-            except: 
-                await main()
-                print("Mori en login")
-                
-        while True:
-            try:
-                await step1(page,cR[i])
-                break
-            except:
-                await main()
-                print("Mori en step1")           
-                
-        while True:        
-            try:
-                await step2(page,cR[i],firstDate,LateDate)
-                break
-            except: 
-                await main()             
-                print("Mori en step2")
+    for i in range(3):
+        browser = await launch(headless=False)  #headless false means open the browser in the operation
+        page = await browser.newPage()
+        retries=0 
+        try:
+            await login(page,retries)
+        except: 
+            print("FAILED IN LOGIN----")        
+        try:
+            await captureOTM(page,cR,len(cR),firstDate,lateDate,retries)
+        except:
+            print("FAILED IN CAPTURE DATA----")  
                 
 asyncio.get_event_loop().run_until_complete(puppet())            
 asyncio.get_event_loop().run_until_complete(main())
