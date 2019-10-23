@@ -2,8 +2,6 @@ import asyncio, os, time, datetime, pyppeteer
 from pyppeteer import launch
 
 #Automate appointment version 2
-usern = ""
-passwd = ""
 cR = ["5227162139","682913782" ,"681782891"]
 firstDate = "2019-10-17 13:04:00"
 LateDate="2019-10-18 13:04:00"
@@ -65,9 +63,11 @@ async def puppet():
         now = datetime.datetime.now()
         print('\n\n\n\n\n ***** SUCCESSFULL ', now.strftime("%Y-%m-%d %H:%M"), ' ***** \n\n\n\n\n')
 
-def readFile():
-    print("estoy imprimiendo")
-    f = open(r'C:\Users\jesushev\repos\.git\RPA-appointment-supervisor-master\appointData.txt',"r") 
+
+#Example of route call
+#--->data=readFile(r'C:\Users\...\file.txt')
+def readFile(route): #ReadFile Method
+    f = open(route,"r") 
     usern=f.readline()
     passwd=f.readline()
     f.close()
@@ -76,31 +76,24 @@ def readFile():
     
 
 #Method automatized login
-async def login(page,usern,passwd):  
-    #try:
-    #await page.waitFor(1000)    
+async def login(page,usern,passwd):      
     await page.setViewport({ 'width':1200, 'height':720})
     await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
     #await asyncio.sleep(5)
     await page.waitFor("[name='submitbutton']") # wait for the login button to continue
-    
-    
-    await page.type("[name='username']", usern)
-    await page.type("[name='userpassword']", passwd)
+        
+    await page.type("[name='username']", "MXPLAN.JNARVAEZB")
+    await page.type("[name='userpassword']", "H3ll0w0rld1")
     await page.click("[name='submitbutton']")
     #await page.waitFor("[name='Link1_2']")
     await page.waitFor(2000)
-    #call captureFunct
-    #try:
-    await captureOTM(page,cR,len(cR)-1,firstDate,lateDate)
+    await captureOTM(page,cR,len(cR)-1,firstDate,lateDate)     #call captureFunct
     #except pyppeteer.errors.NetworkError:
-    #await asyncio.sleep(2)
-    #print("You should't be here")
-            
+    #await asyncio.sleep(2)            
 
 #Start capture of appointments in OTM
+
 async def captureOTM(page,cR,appointI,firstDate, lateDate):    
-    #try:
     for i in range(appointI):
         await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
         await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
@@ -115,7 +108,6 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate):
         await frame.waitFor("[name='order_release/ship_with_group']")
         checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
         buttonstatus=await(await checked.getProperty('checked')).jsonValue()
-        #print(buttonstatus)
         if buttonstatus==True:
             await frame.type("[name='order_release/late_delivery_date']",lateDate)
         else:
@@ -123,26 +115,19 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate):
             await frame.type("[name='order_release/early_delivery_date']",firstDate)
             await frame.type("[name='order_release/late_delivery_date']",lateDate)
             await frame.click("[name='order_release/delivery_is_appt']")               
-    print("SUCCESS-----")
-        #except pyppeteer.errors.NetworkError:
-        #   await login(page)           
-        #await asyncio.sleep(2)            
+    print("SUCCESS-----")                      
 
 async def main():
-    data=readFile() 
-    usern=data[0]
-    passwd=data[1]   
-    #print(data[0])
-    #print(data[1])
     browser = await launch(headless=False)  #headless false means open the browser in the operation
     page = await browser.newPage()  
     try:        
-        await login(page,usern,passwd)
+        await login(page,"","")
     except: 
         await main()
         print("FAILED----")        
         print("Retrying----")  
-    await page.waitFor(1
+    await page.waitFor(10000)
+    await page.close() 
                     
                 
 asyncio.get_event_loop().run_until_complete(puppet())            
