@@ -2,8 +2,8 @@ import asyncio, os, time, datetime, pyppeteer
 from pyppeteer import launch
 
 #Automate appointment version 2
-usern = "MXPLAN.JNARVAEZB"
-passwd = "H3ll0w0rld1"
+usern = ""
+passwd = ""
 cR = ["5227162139","682913782" ,"681782891"]
 firstDate = "2019-10-17 13:04:00"
 LateDate="2019-10-18 13:04:00"
@@ -65,12 +65,26 @@ async def puppet():
         now = datetime.datetime.now()
         print('\n\n\n\n\n ***** SUCCESSFULL ', now.strftime("%Y-%m-%d %H:%M"), ' ***** \n\n\n\n\n')
 
+def readFile():
+    print("estoy imprimiendo")
+    f = open(r'C:\Users\jesushev\repos\.git\RPA-appointment-supervisor-master\appointData.txt',"r") 
+    usern=f.readline()
+    passwd=f.readline()
+    f.close()
+    data=[usern,passwd]
+    return data
+    
+
 #Method automatized login
-async def login(page):  
+async def login(page,usern,passwd):  
     #try:
+    #await page.waitFor(1000)    
     await page.setViewport({ 'width':1200, 'height':720})
     await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
+    #await asyncio.sleep(5)
     await page.waitFor("[name='submitbutton']") # wait for the login button to continue
+    
+    
     await page.type("[name='username']", usern)
     await page.type("[name='userpassword']", passwd)
     await page.click("[name='submitbutton']")
@@ -112,19 +126,23 @@ async def captureOTM(page,cR,appointI,firstDate, lateDate):
     print("SUCCESS-----")
         #except pyppeteer.errors.NetworkError:
         #   await login(page)           
-        #await asyncio.sleep(2)   
+        #await asyncio.sleep(2)            
 
 async def main():
+    data=readFile() 
+    usern=data[0]
+    passwd=data[1]   
+    #print(data[0])
+    #print(data[1])
     browser = await launch(headless=False)  #headless false means open the browser in the operation
     page = await browser.newPage()  
-    try:
-        await login(page)
+    try:        
+        await login(page,usern,passwd)
     except: 
         await main()
         print("FAILED----")        
         print("Retrying----")  
-    await page.waitFor(10000)
-    await page.close()   
+    await page.waitFor(1
                     
                 
 asyncio.get_event_loop().run_until_complete(puppet())            
