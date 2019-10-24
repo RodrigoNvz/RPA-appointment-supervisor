@@ -87,21 +87,15 @@ async def captureOTM():
     try:
         browser = await launch(headless=False)  #headless false means open the browser in the operation
         page = await browser.newPage()  
-
-        await page.setViewport({ 'width':1200, 'height':720})
-        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
-        #await asyncio.sleep(5)
-        await page.waitFor("[name='submitbutton']") # wait for the login button to continue
-
-        data=readFile(r'appointData.txt',"txt")    
-
-        await page.type("[name='username']", data[0])
+        await page.setViewport({'width': 1024, 'height': 768, 'deviceScaleFactor': 1})
+        page.setDefaultNavigationTimeout(60000)
+        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
+        data=readFile(r'appointData.txt',"txt")           
         await page.type("[name='userpassword']", data[1])
-        await page.click("[name='submitbutton']")
-        #await page.waitFor("[name='Link1_2']")
-        await page.waitFor(2000)
-
-        for i in range(len(cR)-1):
+        await page.type("[name='username']", data[0])
+        #await page.click("[name='submitbutton']")  
+        
+        for i in range(len(cR)):
             await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
             await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
             await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
@@ -109,13 +103,10 @@ async def captureOTM():
             await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
             await page.click("[name='rgSGSec.1.1.1.1.check']")
             await page.click("[id='rgMassUpdateImg']") 
-            #await page.waitFor(2000)
-            frames=page.frames
+            frames=page.frames 
             temp= len(frames)  
-            print(temp)
-            while temp < 3:
+            while temp < 3: #Wait until the frame is loaded
                 temp= len(frames) 
-                #print(temp) 
             frame = page.frames[3]    
             await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
             await frame.waitFor("[name='order_release/ship_with_group']")
@@ -127,15 +118,14 @@ async def captureOTM():
                 await frame.type("[name='order_release/ship_with_group']",cR[i])
                 await frame.type("[name='order_release/early_delivery_date']",firstDate)
                 await frame.type("[name='order_release/late_delivery_date']",lateDate)
-                await frame.click("[name='order_release/delivery_is_appt']")               
-        print("SUCCESS-----")  
+                await frame.click("[name='order_release/delivery_is_appt']")    
         await page.waitFor(6000)
         await browser.close()
     except: 
         await browser.close()
         await captureOTM()
         print("FAILED----")        
-        print("Retrying----")                      
+        print("Retrying----")                
                                     
 #asyncio.get_event_loop().run_until_complete(puppet())            
-#asyncio.get_event_loop().run_until_complete(captureOTM())
+asyncio.get_event_loop().run_until_complete(captureOTM())
