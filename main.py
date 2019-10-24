@@ -4,7 +4,7 @@ from pyppeteer import launch
 #Automate appointment version 2
 cR = ["5227162139","682913782" ,"681782891"]
 firstDate = "2019-10-17 13:04:00"
-LateDate="2019-10-18 13:04:00"
+lateDate="2019-10-18 13:04:00"
 
 async def puppet():
     # print('\n'*60)
@@ -26,10 +26,10 @@ async def puppet():
         username = await page.querySelector(strusername)
         password = await page.querySelector(strpass)
 
-        data=readFile(r'walmartD.txt')
+        data=readFile(r'walmartD.txt',"txt")
 
-        await username.type('so5mu65')
-        await password.type('Sanloro44')
+        await username.type(data[0])
+        await password.type(data[1])
         await page.click(strbtn)
 
         
@@ -69,59 +69,74 @@ async def puppet():
 
 #Example of route call
 #--->data=readFile(r'C:\Users\...\file.txt')
-def readFile(route): #ReadFile Method
-    f = open(route,"r") 
-    usern=f.readline()
-    passwd=f.readline()
-    f.close()
-    data=[usern,passwd]
-    return data
+def readFile(route,typeF): #ReadFile Method
+    if typeF=="txt":
+        f = open(route,"r") 
+        usern=f.readline()
+        passwd=f.readline()
+        f.close()
+        data=[usern,passwd]
+        return data
+    wb = xlrd.open_workbook(route) 
+    sheet = wb.sheet_by_index(0) 
+    return sheet.cell_value(0,0)
+    
               
 
 async def captureOTM():  
-    try:
-        browser = await launch(headless=False)  #headless false means open the browser in the operation
-        page = await browser.newPage()  
+    browser = await launch(headless=False)  #headless false means open the browser in the operation
+    page = await browser.newPage()  
 
-        await page.setViewport({ 'width':1200, 'height':720})
-        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
+    await page.setViewport({ 'width':1200, 'height':720})
+    await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')
         #await asyncio.sleep(5)
-        await page.waitFor("[name='submitbutton']") # wait for the login button to continue
-        
-        await page.type("[name='username']", "MXPLAN.JNARVAEZB")
-        await page.type("[name='userpassword']", "H3ll0w0rld1")
-        await page.click("[name='submitbutton']")
-        #await page.waitFor("[name='Link1_2']")
-        await page.waitFor(2000)
+    await page.waitFor("[name='submitbutton']") # wait for the login button to continue
 
-        for i in range(len(cR)-1):
-            await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
-            await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
-            await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
-            await page.keyboard.press('Enter')
-            await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
-            await page.click("[name='rgSGSec.1.1.1.1.check']")
-            await page.click("[id='rgMassUpdateImg']") 
+    data=readFile(r'appointData.txt',"txt")    
+
+    await page.type("[name='username']", data[0])
+    await page.type("[name='userpassword']", data[1])
+    await page.click("[name='submitbutton']")
+    #await page.waitFor("[name='Link1_2']")
+    await page.waitFor(2000)
+
+    for i in range(len(cR)-1):
+        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
+        await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
+        await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
+        await page.keyboard.press('Enter')
+        await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
+        await page.click("[name='rgSGSec.1.1.1.1.check']")
+        await page.click("[id='rgMassUpdateImg']") 
             #await page.waitFor(2000)
-            frame = page.frames[3]    
-            await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
-            await frame.waitFor("[name='order_release/ship_with_group']")
-            checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
-            buttonstatus=await(await checked.getProperty('checked')).jsonValue()
-            if buttonstatus==True:
-                await frame.type("[name='order_release/late_delivery_date']",lateDate)
-            else:
-                await frame.type("[name='order_release/ship_with_group']",cR[i])
-                await frame.type("[name='order_release/early_delivery_date']",firstDate)
-                await frame.type("[name='order_release/late_delivery_date']",lateDate)
-                await frame.click("[name='order_release/delivery_is_appt']")               
-        print("SUCCESS-----")  
-        await page.waitFor(10000)
-        await page.close()
-    except: 
+        frames=page.frames
+        temp= len(frames)  
+        print(temp)
+        while temp < 3:
+            temp= len(frames) 
+            #print(temp) 
+        frame = page.frames[3]    
+        await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
+        await frame.waitFor("[name='order_release/ship_with_group']")
+        checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
+        buttonstatus=await(await checked.getProperty('checked')).jsonValue()
+        if buttonstatus==True:
+            await frame.type("[name='order_release/late_delivery_date']",lateDate)
+        else:
+            await frame.type("[name='order_release/ship_with_group']",cR[i])
+            await frame.type("[name='order_release/early_delivery_date']",firstDate)
+            await frame.type("[name='order_release/late_delivery_date']",lateDate)
+            await frame.click("[name='order_release/delivery_is_appt']")               
+    print("SUCCESS-----")  
+    await page.waitFor(6000)
+    await browser.close()
+    """except: 
+        await browser.close()
         await captureOTM()
         print("FAILED----")        
-        print("Retrying----")                          
+        print("Retrying----")    """                      
                                     
 #asyncio.get_event_loop().run_until_complete(puppet())            
 asyncio.get_event_loop().run_until_complete(captureOTM())
+#data=readFile(r'data.xls')
+#print(data)
