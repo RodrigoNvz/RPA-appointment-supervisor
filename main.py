@@ -94,7 +94,6 @@ async def captureOTM():
         await page.type("[name='userpassword']", data[1])
         await page.type("[name='username']", data[0])
         #await page.click("[name='submitbutton']")  
-        
         for i in range(len(cR)):
             await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
             await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
@@ -119,13 +118,17 @@ async def captureOTM():
                 await frame.type("[name='order_release/early_delivery_date']",firstDate)
                 await frame.type("[name='order_release/late_delivery_date']",lateDate)
                 await frame.click("[name='order_release/delivery_is_appt']")    
+        print("SUCCESS----")
         await page.waitFor(6000)
         await browser.close()
-    except: 
-        await browser.close()
-        await captureOTM()
+
+    except:
+        await browser.close() 
         print("FAILED----")        
-        print("Retrying----")                
+        print("Retrying----")         
+        await captureOTM()
+        
+                    
                                     
-#asyncio.get_event_loop().run_until_complete(puppet())            
-asyncio.get_event_loop().run_until_complete(captureOTM())
+#asyncio.get_event_loop().run_until_complete(puppet()) 
+asyncio.get_event_loop().run_until_complete(captureOTM())   
