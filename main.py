@@ -90,17 +90,22 @@ async def captureOTM():
         await page.setViewport({'width': 1024, 'height': 768, 'deviceScaleFactor': 1})
         page.setDefaultNavigationTimeout(60000)
         await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
-        data=readFile(r'appointData.txt',"txt")           
+        data=readFile(r'appointData.txt',"txt")  
+        await page.waitFor("[name='userpassword']") 
+        await page.waitFor("[name='username']")          
         await page.type("[name='userpassword']", data[1])
         await page.type("[name='username']", data[0])
         #await page.click("[name='submitbutton']")  
         for i in range(len(cR)):
             await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
             await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
+            #await page.waitFor(1000)
             await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
             await page.keyboard.press('Enter')
-            await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
+            await page.waitFor("[name='rgSGSec.1.1.1.1.check']")            
             await page.click("[name='rgSGSec.1.1.1.1.check']")
+            await page.waitFor("[id='rgMassUpdateImg']") 
+            #await page.waitFor(1000)
             await page.click("[id='rgMassUpdateImg']") 
             frames=page.frames 
             temp= len(frames)  
@@ -109,6 +114,9 @@ async def captureOTM():
             frame = page.frames[3]    
             await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
             await frame.waitFor("[name='order_release/ship_with_group']")
+            await frame.waitFor("[name='order_release/early_delivery_date']")
+            await frame.waitFor("[name='order_release/delivery_is_appt']")
+            #await frame.waitFor(1000)
             checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
             buttonstatus=await(await checked.getProperty('checked')).jsonValue()
             if buttonstatus==True:
@@ -125,7 +133,7 @@ async def captureOTM():
     except:
         await browser.close() 
         print("FAILED----")        
-        print("Retrying----")         
+        print("RETRYING----")         
         await captureOTM()
         
                     
