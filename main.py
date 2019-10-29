@@ -7,6 +7,7 @@ cR = ["5227162139","682913782" ,"681782891","5227162139","682913782" ,"681782891
 firstDate = "2019-10-17 13:04:00"
 lateDate="2019-10-18 13:04:00"
 
+
 async def wm_appointment_portal():
     # print('\n'*60)
     clear = lambda: os.system('cls')  # on Linux System
@@ -41,46 +42,45 @@ async def wm_appointment_portal():
         print(contenido)
         print("HIa")
 
-
+#bodyDataDiv > table > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(1) > td > div > input[type=text]:nth-child(3)
         print("LOGIN SUCCESS")
-        targetsAntes = len(browser.targets())
-        print(targetsAntes)
-        await page.waitFor(5000)
+        #targetsAntes = len(browser.targets())
+        #print(targetsAntes)
+        #await page.waitFor(5000)
         #Executing internal func
-        await browser.browserContext
-        await page.evaluate('() => openWin(\'/navis/default.aspx\',\'Appointment_Scheduling\',640,480)')
-        await page.waitFor(5000)
-        targetsDespues = len(browser.browserContexts())
-        print(browser.browserContexts())
-        print(browser.pages())
-        print(targetsAntes)
-        print(targetsDespues)
-        while (targetsAntes == targetsDespues):
-            targetsDespues = len(browser.targets())
-        print("SALI")
-
-        popup_page = await(browser.targets()[len(browser.targets()) - 1]).page()
-        #await popup_page.waitForNavigation()
-        #cadena = await popup_page.frames()
-        #print(str(cadena))
-
-        f1 = await popup_page.frames[0].content()
-        f2 = await popup_page.frames[1].content()
-        f3 = await popup_page.frames[2].content()
+        #await browser.browserContext
+        #await page.evaluate('() => openWin(\'/navis/default.aspx\',\'Appointment_Scheduling\',640,480)')
         
-        print("F1\n\n", f1)
-        print("F2\n\n", f2)
-        print("F3\n\n", f3)
+        #await page.waitFor(5000)
 
-        await popup_page.waitForSelector("html > body > table > tbody > tr:nth-child(3) > td:nth-child(1) > a")
-        contenido = await popup_page.content()
+        testpage = await browser.newPage()
+        await testpage.goto("https://retaillink.wal-mart.com/navis/default.aspx")
+        await testpage.waitForNavigation()
+        #await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/retaillink_mx/ServerDecision.jsp")
+        await testpage.waitForNavigation()
+        #await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/retaillink_mx/NavisDecrypt.jsp")
+        await testpage.waitForNavigation()
+        print("LISTOOOOOO")
+        await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/trips_mx/quickQuery.do?type=thisWeeksDeliveries")
+        #await testpage.waitForNavigation()
+        print("LISTOOOOOO 2")
+        contenidotest = await testpage.content()
+        print(contenidotest)
+        #bodyDataDiv > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(5) > td > div > input[type=text]:nth-child(3)
+        xtabla = await testpage.waitForXPath("//*[@id=\"SortTable0\"]/tbody")
+        tabla = await testpage.evaluate('(xtabla) => xtabla.children', xtabla)
+        #print(len(tabla))
 
-        print(contenido)
-        
-
+        for i in range(1,len(tabla)+1):
+            index = str(i)
+            x1 = await testpage.waitForXPath("//*[@id=\"SortTable0\"]/tbody/tr[{}]/td[1]/a".format(index))
+            no_entrega = await testpage.evaluate('(x1) => x1.innerText', x1)
+            x2 = await testpage.waitForXPath("//*[@id=\"SortTable0\"]/tbody/tr[{}]/td[8]".format(index))
+            cita = await testpage.evaluate('(x2) => x2.innerText', x2)
+            print("Resultado {}: ".format(index), no_entrega, cita)
+        #await testpage.waitFor("body > mc > tbody > tr:nth-child(2) > td.contentPanel > table > tbody > tr:nth-child(4) > td > form > table > tbody > tr > td > table > tbody > tr.contentBodyRow > td.contentBody > SortTable0 > thead > tr.tableTitleRow > th > table > tbody > tr > td")
+        print("LISTOOOOOO 3")
         print('SUCCESSSS!!!!')
-
-        
         await page.waitFor(10000)
         await page.close()
         try:
