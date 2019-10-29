@@ -6,7 +6,7 @@ cR = ["5227162139","682913782" ,"681782891"]
 firstDate = "2019-10-17 13:04:00"
 lateDate="2019-10-18 13:04:00"
 
-async def puppet():
+async def wm_appointment_portal():
     # print('\n'*60)
     clear = lambda: os.system('cls')  # on Linux System
     clear()
@@ -31,20 +31,49 @@ async def puppet():
         await username.type(data[0])
         await password.type(data[1])
         await page.click(strbtn)
-
-        
+        #await page.waitForSelector("Head1")
+        print("Esperando")
+        await page.waitForNavigation()
+        #await page.waitFor(15000)
+        print("YA")
         contenido = await page.content()
         print(contenido)
-        await page.waitForNavigation()
+        print("HIa")
+
 
         print("LOGIN SUCCESS")
-        print(browser.targets())
-        #Executing internal func
-        title = await page.evaluate('() => openWin(\'/navis/default.aspx\',\'Appointment_Scheduling\',640,480)')
+        targetsAntes = len(browser.targets())
+        print(targetsAntes)
         await page.waitFor(5000)
-        print(browser.targets())
+        #Executing internal func
+        await browser.browserContext
+        await page.evaluate('() => openWin(\'/navis/default.aspx\',\'Appointment_Scheduling\',640,480)')
+        await page.waitFor(5000)
+        targetsDespues = len(browser.browserContexts())
+        print(browser.browserContexts())
+        print(browser.pages())
+        print(targetsAntes)
+        print(targetsDespues)
+        while (targetsAntes == targetsDespues):
+            targetsDespues = len(browser.targets())
+        print("SALI")
+
         popup_page = await(browser.targets()[len(browser.targets()) - 1]).page()
+        #await popup_page.waitForNavigation()
+        #cadena = await popup_page.frames()
+        #print(str(cadena))
+
+        f1 = await popup_page.frames[0].content()
+        f2 = await popup_page.frames[1].content()
+        f3 = await popup_page.frames[2].content()
+        
+        print("F1\n\n", f1)
+        print("F2\n\n", f2)
+        print("F3\n\n", f3)
+
+        await popup_page.waitForSelector("html > body > table > tbody > tr:nth-child(3) > td:nth-child(1) > a")
         contenido = await popup_page.content()
+
         print(contenido)
         
 
@@ -52,7 +81,6 @@ async def puppet():
 
         
         await page.waitFor(10000)
-                
         await page.close()
         try:
             await browser.close()
@@ -77,11 +105,9 @@ def readFile(route,typeF): #ReadFile Method
         f.close()
         data=[usern,passwd]
         return data
-    wb = xlrd.open_workbook(route) 
-    sheet = wb.sheet_by_index(0) 
-    return sheet.cell_value(0,0)
-    
-              
+    ##wb = xlrd.open_workbook(route) 
+    #sheet = wb.sheet_by_index(0) 
+    #return sheet.cell_value(0,0)         
 
 async def captureOTM():  
     try:
@@ -138,5 +164,5 @@ async def captureOTM():
         
                     
                                     
-#asyncio.get_event_loop().run_until_complete(puppet()) 
-asyncio.get_event_loop().run_until_complete(captureOTM())   
+asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
+#asyncio.get_event_loop().run_until_complete(captureOTM())   
