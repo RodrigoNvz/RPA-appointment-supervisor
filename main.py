@@ -2,7 +2,8 @@ import asyncio, os, time, datetime, pyppeteer
 from pyppeteer import launch
 
 #Automate appointment version 2
-cR = ["5227162139","682913782" ,"681782891"]
+oR = ["5227162139-002","682913782-001","681782891-002","5227162139-002","682913782-001","681782891-002"]
+cR = ["5227162139","682913782" ,"681782891","5227162139","682913782" ,"681782891"]
 firstDate = "2019-10-17 13:04:00"
 lateDate="2019-10-18 13:04:00"
 
@@ -110,57 +111,67 @@ def readFile(route,typeF): #ReadFile Method
     #return sheet.cell_value(0,0)         
 
 async def captureOTM():  
-    try:
-        browser = await launch(headless=False)  #headless false means open the browser in the operation
-        page = await browser.newPage()  
-        await page.setViewport({'width': 1024, 'height': 768, 'deviceScaleFactor': 1})
-        page.setDefaultNavigationTimeout(60000)
-        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
-        data=readFile(r'appointData.txt',"txt")  
-        await page.waitFor("[name='userpassword']") 
-        await page.waitFor("[name='username']")          
-        await page.type("[name='userpassword']", data[1])
-        await page.type("[name='username']", data[0])
-        #await page.click("[name='submitbutton']")  
-        for i in range(len(cR)):
-            await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
-            await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the order release)
-            #await page.waitFor(1000)
-            await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
-            await page.keyboard.press('Enter')
-            await page.waitFor("[name='rgSGSec.1.1.1.1.check']")            
-            await page.click("[name='rgSGSec.1.1.1.1.check']")
-            await page.waitFor("[id='rgMassUpdateImg']") 
-            #await page.waitFor(1000)
-            await page.click("[id='rgMassUpdateImg']") 
-            frames=page.frames 
-            temp= len(frames)  
-            while temp < 3: #Wait until the frame is loaded
-                temp= len(frames) 
-            frame = page.frames[3]    
-            await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
-            await frame.waitFor("[name='order_release/ship_with_group']")
-            await frame.waitFor("[name='order_release/early_delivery_date']")
-            await frame.waitFor("[name='order_release/delivery_is_appt']")
-            #await frame.waitFor(1000)
-            checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
-            buttonstatus=await(await checked.getProperty('checked')).jsonValue()
-            if buttonstatus==True:
-                await frame.type("[name='order_release/late_delivery_date']",lateDate)
-            else:
-                await frame.type("[name='order_release/ship_with_group']",cR[i])
-                await frame.type("[name='order_release/early_delivery_date']",firstDate)
-                await frame.type("[name='order_release/late_delivery_date']",lateDate)
-                await frame.click("[name='order_release/delivery_is_appt']")    
-        print("SUCCESS----")
-        await page.waitFor(6000)
-        await browser.close()
+    #try:
+    #browser = await launch({'args': ['--disable-dev-shm-usage']})  #headless false means open the browser in the operation
+    browser =await launch(headless=False)
+    page = await browser.newPage()  
+    await page.setViewport({'width': 1024, 'height': 768, 'deviceScaleFactor': 1})
+    page.setDefaultNavigationTimeout(60000)
+    await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
+    data=readFile(r'appointData.txt',"txt")  
+    await page.waitFor("[name='userpassword']") 
+    await page.waitFor("[name='username']")          
+    await page.type("[name='userpassword']", data[1])
+    await page.type("[name='username']", data[0])
+    #await page.click("[name='submitbutton']")  
+    for i in range(len(cR)):
+        await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
+        await page.waitFor("[name='order_release/xid']") #Wait for the order release
+        await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the CR        
+        #await page.waitFor(1000)
+        await page.type("[name='order_release/xid']",oR[i])
+        await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])        
+        #await page.waitFor(1000)
+        await page.keyboard.press('Enter')  
+        await page.waitFor("[name='rgSGSec.1.1.1.1.check']") 
+           
+        await page.click("[name='rgSGSec.1.1.1.1.check']")
+        #await page.waitFor(1000)
+        await page.waitFor("[id='rgMassUpdateImg']") 
+        await page.click("[id='rgMassUpdateImg']") 
+        
+        frames=page.frames 
+        temp= len(frames)  
+        while temp < 3 and i==(len(cR)): #Wait until the frame is loaded
+            temp= len(frames) 
+        frame = page.frames[3] 
+        await page.waitFor(1000)         
+        await frame.waitFor("[name='order_release/early_delivery_date']")  
+        await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
+        await frame.waitFor("[name='order_release/ship_with_group']")
+        await frame.waitFor("[name='order_release/delivery_is_appt']")
+        print("Success")
+        #await frame.waitFor(1000)
+        '''checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
+        buttonstatus=await(await checked.getProperty('checked')).jsonValue()
+        if buttonstatus==True:
+            await frame.type("[name='order_release/late_delivery_date']",lateDate)
+        else:
+            await frame.type("[name='order_release/ship_with_group']",cR[i])
+            await frame.type("[name='order_release/early_delivery_date']",firstDate)
+            await frame.type("[name='order_release/late_delivery_date']",lateDate)
+            await frame.click("[name='order_release/delivery_is_appt']") 
+        print("PASSED")
+        #print("Success")
+    print("SUCCESS----")
+    await page.waitFor(2000)
+    await browser.close()'''
 
-    except:
-        await browser.close() 
-        print("FAILED----")        
-        print("RETRYING----")         
-        await captureOTM()
+    # except:
+    #     await browser.close() 
+    #     print("FAILED----")        
+    #     print("RETRYING----")         
+    #     await captureOTM()
         
                     
                                     
