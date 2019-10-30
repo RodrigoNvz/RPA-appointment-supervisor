@@ -118,6 +118,7 @@ async def captureOTM():
     await page.setViewport({'width': 1024, 'height': 768, 'deviceScaleFactor': 1})
     page.setDefaultNavigationTimeout(60000)
     await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
+    await page.waitFor(1000)
     data=readFile(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\appointData.txt',"txt")  
     await page.waitFor("[name='userpassword']") 
     await page.waitFor("[name='username']")          
@@ -126,33 +127,29 @@ async def captureOTM():
     #await page.click("[name='submitbutton']")  
     for i in range(len(cR)):
         await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE')
+        await page.waitFor(1000)
         await page.waitFor("[name='order_release/xid']") #Wait for the order release
         await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the CR        
-        #await page.waitFor(1000)
         await page.type("[name='order_release/xid']",oR[i])
         await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])        
-        #await page.waitFor(1000)
         await page.keyboard.press('Enter') 
         await page.waitFor("[name='rgSGSec.1.1.1.1.check']") 
         await page.click("[name='rgSGSec.1.1.1.1.check']")
-        #await page.waitFor(1000)
-        await page.waitFor("[id='rgMassUpdateImg']") 
-        await page.click("[id='rgMassUpdateImg']") 
+        await page.waitFor("[title='Mass Update']") 
+        await page.click("[title='Mass Update']") 
         frames=page.frames 
         temp= len(frames)  
         while temp < 3 : #Wait until the frame is loaded
             temp= len(frames) 
         frame = page.frames[3] 
-        await page.waitFor(1000)         
+        await page.waitFor(1000)
+        await frame.waitFor("[name='order_release/delivery_is_appt']")         
         await frame.waitFor("[name='order_release/early_delivery_date']")  
         await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
         await frame.waitFor("[name='order_release/ship_with_group']")
-        await frame.waitFor("[name='order_release/delivery_is_appt']")
         #print("Success")
-        #await frame.waitFor(1000)
         checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
         buttonstatus=await(await checked.getProperty('checked')).jsonValue()
-        #try:
         if buttonstatus==True:
             await frame.type("[name='order_release/late_delivery_date']",lateDate)
         else:
@@ -172,5 +169,5 @@ async def captureOTM():
         print("RETRYING----")         
         await captureOTM()'''
                                          
-asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
-#asyncio.get_event_loop().run_until_complete(captureOTM())       
+#asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
+asyncio.get_event_loop().run_until_complete(captureOTM())       
