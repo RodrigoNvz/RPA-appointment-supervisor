@@ -1,4 +1,4 @@
-import asyncio, os, time, datetime, pyppeteer
+import asyncio, os, time, datetime, pyppeteer,pandas
 from pyppeteer import launch
 
 #Automate appointment version 2
@@ -28,7 +28,7 @@ async def wm_appointment_portal():
         username = await page.querySelector(strusername)
         password = await page.querySelector(strpass)
 
-        data=readFile(r'walmartD.txt',"txt")
+        data=readFile(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\walmartD.txt',"txt")
 
         await username.type(data[0])
         await password.type(data[1])
@@ -110,6 +110,14 @@ def readFile(route,typeF): #ReadFile Method
     #sheet = wb.sheet_by_index(0) 
     #return sheet.cell_value(0,0)         
 
+def csvReading():
+    data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv")
+    print(data.hea(5))
+
+#orden y factura substract
+#Sacar con pandas shipment, order release, early delivery. late delivery, cuenta=wella, cr
+#Se va a hacer match por folio.
+#validar que las citas estan bien, si estan correctos los campos no hacemos nada, si no glo cambiamos.
 async def captureOTM():  
     try:
         #browser = await launch({'args': ['--disable-dev-shm-usage']})  #headless false means open the browser in the operation
@@ -167,6 +175,7 @@ async def captureOTM():
         print("FAILED----")        
         print("RETRYING----")         
         await captureOTM()
-                                         
+
+csvReading()                                         
 #asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
-asyncio.get_event_loop().run_until_complete(captureOTM())       
+#asyncio.get_event_loop().run_until_complete(captureOTM())       
