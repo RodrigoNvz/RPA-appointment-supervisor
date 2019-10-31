@@ -84,6 +84,9 @@ def readFile(route,typeF): #ReadFile Method
         
 def csvReading():
     data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
+    wella=data[(data['CUENTA']=='WELLA') ]#& (data['CONSIGNATARIO']=='WALMART CEDIS 7482 SANTA BARBARA') & (data['CONSIGNATARIO']=='WALMART CEDIS 7471 CHALCO')]
+    #filterW=data[wella]
+    print(wella.head())
     #print(data.head(5))
 
 async def captureOTM():  
@@ -148,4 +151,4 @@ async def captureOTM():
 data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
 for i in range(len(data)):
     print("VALUE: ",data[i])
-asyncio.get_event_loop().run_until_complete(captureOTM())  
+asyncio.get_event_loop().run_until_complete(captureOTM())
