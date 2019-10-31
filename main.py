@@ -84,7 +84,7 @@ def readFile(route,typeF): #ReadFile Method
         
 def csvReading():
     data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
-    wella=data[(data['CUENTA']=='WELLA') ]#& (data['CONSIGNATARIO']=='WALMART CEDIS 7482 SANTA BARBARA') & (data['CONSIGNATARIO']=='WALMART CEDIS 7471 CHALCO')]
+    wella=data[(data['CUENTA']=='WELLA')& ( (data['CONSIGNATARIO']=='WALMART CEDIS 7482 SANTA BARBARA') | (data['CONSIGNATARIO']=='WALMART CEDIS 7471 CHALCO'))]
     #filterW=data[wella]
     print(wella.head())
     #print(data.head(5))
@@ -113,15 +113,17 @@ async def captureOTM():
             await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])        
             await page.keyboard.press('Enter') 
             await page.waitFor("[name='rgSGSec.1.1.1.1.check']") 
+            await page.waitFor(1000)
             await page.click("[name='rgSGSec.1.1.1.1.check']")
             await page.waitFor("[title='Mass Update']") 
+            await page.waitFor(1000)
             await page.click("[title='Mass Update']") 
             frames=page.frames 
             temp= len(frames)  
             while temp < 3 : #Wait until the frame is loaded
                 temp= len(frames) 
             frame = page.frames[3] 
-            await page.waitFor(1000)
+            #await page.waitFor(1000)
             await frame.waitFor("[name='order_release/delivery_is_appt']")         
             await frame.waitFor("[name='order_release/early_delivery_date']")  
             await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
@@ -142,7 +144,7 @@ async def captureOTM():
         await browser.close()
 
     except:
-        await browser.close() 
+        await browser.close()
         print("FAILED----")        
         print("RETRYING----")         
         await captureOTM()
