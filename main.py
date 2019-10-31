@@ -2,10 +2,10 @@ import asyncio, os, time, datetime, pyppeteer,pandas
 from pyppeteer import launch
 
 #Automate appointment version 2
-oR = ["5227162139-002","682913782-001","681782891-002","5227162139-002","682913782-001","681782891-002"]
-cR = ["5227162139","682913782" ,"681782891","5227162139","682913782" ,"681782891"]
-firstDate = "2019-10-17 13:04:00"
-lateDate="2019-10-18 13:04:00"
+oR = ["3015800169-001","3015800167-001","681782891-002","5227162139-002"]
+cR = ["3015800169","3015800167" ,"681782891","5227162139"]
+firstDate = "2019-11-4 13:04:00"
+lateDate="2019-11-4 13:04:00"
 
 
 async def wm_appointment_portal():
@@ -84,7 +84,7 @@ def readFile(route,typeF): #ReadFile Method
         
 def csvReading():
     data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
-    print(data.head(5))
+    #print(data.head(5))
 
 async def captureOTM():  
     try:
@@ -135,7 +135,7 @@ async def captureOTM():
                 await frame.click("[name='order_release/delivery_is_appt']") 
             print("PASSED")
         print("SUCCESS----")
-        await page.waitFor(2000)
+        await page.waitFor(3000)
         await browser.close()
 
     except:
@@ -146,5 +146,6 @@ async def captureOTM():
 
 #csvReading()                                          
 data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
-print(data)
-#asyncio.get_event_loop().run_until_complete(captureOTM())  
+for i in range(len(data)):
+    print("VALUE: ",data[i])
+asyncio.get_event_loop().run_until_complete(captureOTM())  
