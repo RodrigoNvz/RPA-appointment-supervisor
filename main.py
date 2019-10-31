@@ -1,4 +1,4 @@
-import asyncio, os, time, datetime, pyppeteer
+import asyncio, os, time, datetime, pyppeteer,pandas
 from pyppeteer import launch
 
 #Automate appointment version 2
@@ -24,7 +24,7 @@ async def wm_appointment_portal():
     username = await page.querySelector(strusername)
     password = await page.querySelector(strpass)
 
-    data=readFile(r'walmartD.txt',"txt")
+    data=readFile(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\walmartD.txt',"txt")
 
     print("Filling form...")
     await username.type(data[0])
@@ -55,7 +55,7 @@ async def wm_appointment_portal():
         x2 = await testpage.waitForXPath("//*[@id=\"SortTable0\"]/tbody/tr[{}]/td[8]".format(index))
         cita = await testpage.evaluate('(x2) => x2.innerText', x2)
         #Conversión a datetime
-        clean_cita = datetime.datetime.strptime(cita, '%Y-%m-%d %H:%M:%S')
+        clean_cita = datetime.datetime.strptime(cita, '%m/%d/%y %I:%M %p')
         master_citas.append([no_entrega,clean_cita])
 
     print("Succesful extraction... \nResults:\n",master_citas)
@@ -67,7 +67,7 @@ async def wm_appointment_portal():
     return master_citas
 
 
-
+#clean cita se compara contra el late delivery date > o =
 #Example of route call
 #--->data=readFile(r'C:\Users\...\file.txt')
 def readFile(route,typeF): #ReadFile Method
@@ -80,7 +80,11 @@ def readFile(route,typeF): #ReadFile Method
         return data
     ##wb = xlrd.open_workbook(route) 
     #sheet = wb.sheet_by_index(0) 
-    #return sheet.cell_value(0,0)         
+    #return sheet.cell_value(0,0) 
+        
+def csvReading():
+    data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
+    print(data.head(5))
 
 async def captureOTM():  
     try:
@@ -139,6 +143,8 @@ async def captureOTM():
         print("FAILED----")        
         print("RETRYING----")         
         await captureOTM()
-                                         
-#asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
-asyncio.get_event_loop().run_until_complete(captureOTM())  
+
+#csvReading()                                          
+data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
+print(data)
+#asyncio.get_event_loop().run_until_complete(captureOTM())  
