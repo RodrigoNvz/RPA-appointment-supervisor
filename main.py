@@ -2,8 +2,8 @@ import asyncio, os, time, datetime, pyppeteer,pandas
 from pyppeteer import launch
 
 #Automate appointment version 2
-oR = ["3015800169-001","3015800167-001","681782891-002","5227162139-002"]
-cR = ["3015800169","3015800167" ,"681782891","5227162139"]
+oR = ["3015800169-001","3015800167-001","5227162139-002"]
+cR = ["3015800169","3015800167" ,"5227162139"]
 firstDate = "2019-11-4 13:04:00"
 lateDate="2019-11-4 13:04:00"
 
@@ -113,10 +113,10 @@ async def captureOTM():
             await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])        
             await page.keyboard.press('Enter') 
             await page.waitFor("[name='rgSGSec.1.1.1.1.check']") 
-            await page.waitFor(1000)
+            #await page.waitFor(1000)
             await page.click("[name='rgSGSec.1.1.1.1.check']")
             await page.waitFor("[title='Mass Update']") 
-            await page.waitFor(1000)
+            #await page.waitFor(1000)
             await page.click("[title='Mass Update']") 
             frames=page.frames 
             temp= len(frames)  
