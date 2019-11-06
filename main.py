@@ -24,7 +24,7 @@ async def wm_appointment_portal():
     username = await page.querySelector(strusername)
     password = await page.querySelector(strpass)
 
-    data=readFile(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\walmartD.txt',"txt")
+    data=readFile(r'walmartD.txt',"txt")
 
     print("Filling form...")
     await username.type(data[0])
@@ -80,7 +80,7 @@ def readFile(route,typeF): #ReadFile Method
         return data
     if typeF=="csv":
         data=[]
-        with open(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\USUARIO WALMART.csv')as csvfile:
+        with open(r'USUARIO WALMART.csv')as csvfile:
             contentreader=csv.reader(csvfile)
             cuentas = []
             users = []
@@ -95,7 +95,7 @@ def readFile(route,typeF): #ReadFile Method
         return data
 #Method that filter the info requierd from the prime light        
 def csvReading():
-    data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
+    data=pandas.read_csv('light.csv',encoding="ISO-8859-1")
     consignatario=['WALMART CEDIS 7482 SANTA BARBARA','WALMART CEDIS 7471 CHALCO']
     wella=data[(data['CUENTA']=='WELLA')& ( (data['CONSIGNATARIO']=='WALMART CEDIS 7482 SANTA BARBARA') | (data['CONSIGNATARIO']=='WALMART CEDIS 7471 CHALCO'))]
     #filterW=data[wella]
@@ -111,7 +111,7 @@ async def captureOTM():
         page.setDefaultNavigationTimeout(60000)
         await page.goto('https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login')    
         await page.waitFor(1000)
-        data=readFile(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\appointData.txt',"txt")  
+        data=readFile(r'appointData.txt',"txt")  
         await page.waitFor("[name='userpassword']") 
         await page.waitFor("[name='username']")          
         await page.type("[name='userpassword']", data[1])
@@ -162,6 +162,9 @@ async def captureOTM():
         print("RETRYING----")         
         await captureOTM()
 
+cwd = os.getcwd()  # Get the current working directory (cwd)
+files = os.listdir(cwd)  # Get all the files in that directory
+print("Files in %r: %s" % (cwd, files))
 #csvReading()                                          
 #readFile('USUARIOS WALMART.csv',"csv")
 # data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
