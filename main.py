@@ -1,4 +1,4 @@
-import asyncio, os, time, datetime, pyppeteer,pandas
+import asyncio, os, time, datetime, pyppeteer,pandas,csv
 from pyppeteer import launch
 
 #Automate appointment version 2
@@ -78,12 +78,25 @@ def readFile(route,typeF): #ReadFile Method
         f.close()
         data=[usern,passwd]
         return data
-    ##wb = xlrd.open_workbook(route) 
-    #sheet = wb.sheet_by_index(0) 
-    #return sheet.cell_value(0,0) 
-        
+    if typeF=="csv":
+        data=[]
+        with open(r'C:\Users\jesushev\Documents\RPA-appointment-supervisor\USUARIO WALMART.csv')as csvfile:
+            contentreader=csv.reader(csvfile)
+            cuentas = []
+            users = []
+            passws= []
+
+            for row in contentreader:
+                cuentas.append(row[0])
+                print (row[0],row[1],row[2])
+                users.append(row[1])
+                passws.append(row[2])
+            data=[cuentas,users,passws]
+        return data
+#Method that filter the info requierd from the prime light        
 def csvReading():
     data=pandas.read_csv(r"C:\Users\jesushev\Documents\RPA-appointment-supervisor\light.csv",encoding="ISO-8859-1")
+    consignatario=['WALMART CEDIS 7482 SANTA BARBARA','WALMART CEDIS 7471 CHALCO']
     wella=data[(data['CUENTA']=='WELLA')& ( (data['CONSIGNATARIO']=='WALMART CEDIS 7482 SANTA BARBARA') | (data['CONSIGNATARIO']=='WALMART CEDIS 7471 CHALCO'))]
     #filterW=data[wella]
     print(wella.head())
@@ -150,7 +163,8 @@ async def captureOTM():
         await captureOTM()
 
 #csvReading()                                          
-data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
-for i in range(len(data)):
-    print("VALUE: ",data[i])
-asyncio.get_event_loop().run_until_complete(captureOTM())
+#readFile('USUARIOS WALMART.csv',"csv")
+# data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal()) 
+# for i in range(len(data)):
+#     print("VALUE: ",data[i])
+# asyncio.get_event_loop().run_until_complete(captureOTM())
