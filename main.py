@@ -166,23 +166,57 @@ def verificacionCita():
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Bepensa
     data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][1],usr[2][1])))
-    writed = open('Reporte citas.txt','w')
-    writed.write("Datos Cuenta: \n")
-    for i in range(len(data)):
-        print(data[i])
-        writed.write(str(data[i]))
-
+    writed = open('Reporte Bepensa.txt','w')
+    writed.write("Datos Cuenta: Bepensa \n")
+    #for i in range(len(data)):
+        #print(data[i]+"\n")
+        #writed.write(str(data[i]))
     #Then start comparing it with prime light dB
     pands=lightReading(data[0][0][0])
     oR.append(pands.iloc[0]['ORDER_RELEASE_GID'])
     oR.append(pands.iloc[1]['ORDER_RELEASE_GID'])
     oR.append(pands.iloc[2]['ORDER_RELEASE_GID'])
     arr=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
-    writed.write("\nDatos OTM: \n")
-    for i in range(len(arr)):
-        print(arr[i])
+    
+    #print("Data",data[0][1])
+    #print("Arr",len(arr))
+    #writed.write(str(data[0]))
+    for i in range(len(arr)):  
+        writed.write("\nDatos walmart: \n")    
+        writed.write(str(data[0][i]))
+        writed.write("\nDatos OTM: \n")      
         writed.write(str(arr[i]))
-    writed.close()    
+        writed.write("\n")
+    writed.close()
+
+    #Here we stract from wella. 
+    data=[]
+    oR=[]  
+    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][2],usr[2][2])))
+    writed = open('Reporte Walmart.txt','w')
+    writed.write("Datos Cuenta: Walmart \n")
+    #for i in range(len(data)):
+        #print(data[i]+"\n")
+        #writed.write(str(data[i]))
+    #Then start comparing it with prime light dB
+    print(data[0][0])
+    #pands=lightReading(data[0][0][0])
+    #print(pands)
+    #oR.append(pands.iloc[0]['ORDER_RELEASE_GID'])
+    #oR.append(pands.iloc[1]['ORDER_RELEASE_GID'])
+    #oR.append(pands.iloc[2]['ORDER_RELEASE_GID'])
+    #arr=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
+    
+    #print("Data",data[0][1])
+    #print("Arr",len(arr))
+    #writed.write(str(data[0]))
+    #for i in range(len(arr)):  
+     #   writed.write("\nDatos walmart: \n")    
+      #  writed.write(str(data[0][i]))
+      #  writed.write("\nDatos OTM: \n")      
+       # writed.write(str(arr[i]))
+        #writed.write("\n")
+    writed.close()
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
