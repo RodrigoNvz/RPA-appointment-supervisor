@@ -1,14 +1,17 @@
+''' Automate appointments prototype 0.5
+    Authors:
+        Heriberto Vasquez Sanchez
+        Jose Rodrigo Narvaez Berlanga'''
+
 import asyncio, os, time, datetime, pyppeteer, pandas, csv
 from pyppeteer import launch
 
-# Automate appointment version 2
-oR = ["33976-001", "34514-001", "5602993825-001"]
-confirmCita=["7865881","7955784","7944631"]
-#cR = ["3015800169", "3015800167", "5227162139"]
+#oR = ["33976-001", "34514-001", "5602993825-001"]
+#confirmCita=["7865881","7955784","7944631"]
 firstDate = "2019-11-4 13:04:00"
 lateDate = "2019-11-4 13:04:00"
 
-
+#Walmart appointment extraction method
 async def wm_appointment_portal(user,passwd):
 
     browser = await launch(headless=False)
@@ -70,60 +73,9 @@ async def wm_appointment_portal(user,passwd):
     return master_citas
 
 
-# clean cita se compara contra el late delivery date > o =
-# Example of route call --->data=readFile(r'C:\Users\...\file.txt')
-def readFile(route, typeF):  # ReadFile Method
-    if typeF == "txt":
-        f = open(route, "r")
-        usern = f.readline()
-        passwd = f.readline()
-        f.close()
-        data = [usern, passwd]
-        return data
-    if typeF == "csv":
-        data = []
-        with open(route) as csvfile:
-            contentreader = csv.reader(csvfile)
-            cuentas = []
-            users = []
-            passws = []
-
-            for row in contentreader:
-                cuentas.append(row[0])
-                print(row[0], row[1], row[2])
-                users.append(row[1])
-                passws.append(row[2])
-            data = [cuentas, users, passws]
-        return data
-
-
-# Method that filter the info requierd from the prime light
-def lightReading():
-    # if cuenta == "WELLA":
-    #     data = pandas.read_csv("light.csv", encoding="ISO-8859-1")
-    #     tabla = data[(data["CUENTA"] == cuenta) & ((data["CONSIGNATARIO"] == "WALMART CEDIS 7482 SANTA BARBARA") | (data["CONSIGNATARIO"] == "WALMART CEDIS 7471 CHALCO"))]
-    #     print(tabla.head(16))
-    #     return tabla
-    #Reading just confirmacion cita needed
-    data = pandas.read_csv("Prime_Light.csv", encoding="ISO-8859-1")
-    cita="FOLIO "+confirmCita[0]
-    tabla = data[(data["CONFIRMACION CITA"]== cita)]
-    print(tabla[['CONSIGNATARIO','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']])
-
-# Here we do the verification between the walmart site and OTM
-def verificacionCita():
-    usr=readFile(r'USUARIO WALMART.csv',"csv")
-    data=[]
-    #for i in range (1,len(usr)):
-        #data.append = asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][i],usr[2][i]))
-    
-
-
-# data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal())
-# for i in range (len(data)):
-#     print(data[i])
-
-async def captureOTM():
+#-----------------------------------------------------------------------------------------------------
+#Validate appointments in OTM 
+async def captureOTM(oR):
     # try:
     # browser = await launch({'args': ['--disable-dev-shm-usage']})
     browser = await launch(headless=False)  # headless false means open the browser in the operation
@@ -137,8 +89,10 @@ async def captureOTM():
     await page.waitFor("[name='username']")
     await page.type("[name='userpassword']", data[1])
     await page.type("[name='username']", data[0])
-    # await page.click("[name='submitbutton']")
-    for i in range(len(cR)):
+    # await page.click("[name='submitbutton']") 
+    returned=[]
+    for i in range(len(oR)):
+        valuei=[]
         await page.goto("https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE")
         await page.waitFor(1000)
         await page.waitFor("[name='order_release/xid']")  # Wait for the order release
@@ -148,12 +102,22 @@ async def captureOTM():
         await page.keyboard.press("Enter")
         # Aqui checamos si la cita hace match con el sitio web de walmart
         await page.waitFor("[tabindex='201']")
-        element = await page.querySelector("[id='rgSGSec.2.2.1.22']")
-        content = await page.evaluate('(element)=> element.textContent', element)
-        containedTxt=content.split(" ")
-        if(len(containedTxt)>=2):
-            print(containedTxt[1])
-
+        confirm = await page.querySelector("[id='rgSGSec.2.2.1.22']")
+        folio = await page.evaluate('(confirm)=> confirm.textContent', confirm)
+        early = await page.querySelector("[id='rgSGSec.2.2.1.18']")
+        eDate = await page.evaluate('(early)=> early.textContent', early)
+        late = await page.querySelector("[id='rgSGSec.2.2.1.29']")
+        lDate = await page.evaluate('(late)=> late.textContent', late)
+        consigna = await page.querySelector("[id='rgSGSec.2.2.1.24']")
+        consignatario = await page.evaluate('(consigna)=> consigna.textContent', consigna)
+        #containedTxt=content.split(" ")
+        #if(len(containedTxt)>=2):
+            #print(containedTxt[1])
+        valuei.append(folio)
+        valuei.append(eDate)
+        valuei.append(lDate)
+        valuei.append(consignatario)
+        returned.append(valuei)
 
         # await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
         # await page.waitFor(1000)
@@ -181,11 +145,11 @@ async def captureOTM():
         #     await frame.type("[name='order_release/early_delivery_date']",firstDate)
         #     await frame.type("[name='order_release/late_delivery_date']",lateDate)
         #     await frame.click("[name='order_release/delivery_is_appt']")
-        print("PASSED")
-    print("SUCCESS----")
+        #print("PASSED")
+    #print("SUCCESS----")
+    return returned
     await page.waitFor(3000)
     await browser.close()
-
 
 # except:
 #     await browser.close()
@@ -193,10 +157,72 @@ async def captureOTM():
 #     print("RETRYING----")
 #     await captureOTM()
 
-lightReading()
-#data=readFile(r'USUARIO WALMART.csv',"csv")
-#print(data[0][2])
-#verificacionCita()
-# data=asyncio.get_event_loop().run_until_complete(wm_appointment_portal())
-#
-#asyncio.get_event_loop().run_until_complete(captureOTM())
+#-----------------------------------------------------------------------------------------------------
+# Here we do the verification between the walmart site and OTM, consolidating data
+def verificacionCita():
+    usr=readFile(r'USUARIO.csv',"csv")
+    data=[]
+    oR=[]
+    #falta que de click cuando #tip este en enabled.
+    #Por ahora lo probamos con Bepensa
+    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][1],usr[2][1])))
+    writed = open('Reporte citas.txt','w')
+    writed.write("Datos Cuenta: \n")
+    for i in range(len(data)):
+        print(data[i])
+        writed.write(str(data[i]))
+
+    #Then start comparing it with prime light dB
+    pands=lightReading(data[0][0][0])
+    oR.append(pands.iloc[0]['ORDER_RELEASE_GID'])
+    oR.append(pands.iloc[1]['ORDER_RELEASE_GID'])
+    oR.append(pands.iloc[2]['ORDER_RELEASE_GID'])
+    arr=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
+    writed.write("\nDatos OTM: \n")
+    for i in range(len(arr)):
+        print(arr[i])
+        writed.write(str(arr[i]))
+    writed.close()    
+
+#-----------------------------------------------------------------------------------------------------
+# Method that filter the info requierd from the prime light
+def lightReading(cita):
+    # if cuenta == "WELLA":
+    #     data = pandas.read_csv("light.csv", encoding="ISO-8859-1")
+    #     tabla = data[(data["CUENTA"] == cuenta) & ((data["CONSIGNATARIO"] == "WALMART CEDIS 7482 SANTA BARBARA") | (data["CONSIGNATARIO"] == "WALMART CEDIS 7471 CHALCO"))]
+    #     print(tabla.head(16))
+    #     return tabla
+    #Reading just confirmacion appointement needed
+    data = pandas.read_csv("Prime_Light.csv", encoding="ISO-8859-1")
+    #confirmacion="FOLIO "+cita
+    tabla = data[(data["CONFIRMACION CITA"]== cita)]
+    #appointment=tabla.iloc[1]['ORDER_RELEASE_GID']
+    return tabla#tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
+
+#-----------------------------------------------------------------------------------------------------
+# Example of route call --->data=readFile(r'C:\Users\...\file.txt')
+def readFile(route, typeF):  # ReadFile Method
+    if typeF == "txt":
+        f = open(route, "r")
+        usern = f.readline()
+        passwd = f.readline()
+        f.close()
+        data = [usern, passwd]
+        return data
+    if typeF == "csv":
+        data = []
+        with open(route) as csvfile:
+            contentreader = csv.reader(csvfile)
+            cuentas = []
+            users = []
+            passws = []
+            for row in contentreader:
+                cuentas.append(row[0])
+                users.append(row[1])
+                passws.append(row[2])
+            data = [cuentas, users, passws]
+        return data
+
+
+#-----------------------------------------------------------------------------------------------------
+verificacionCita()
