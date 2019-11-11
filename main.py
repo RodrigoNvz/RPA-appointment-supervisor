@@ -3,8 +3,9 @@
         Heriberto Vasquez Sanchez
         Jose Rodrigo Narvaez Berlanga'''
 
-import asyncio, os, time, datetime, pyppeteer, pandas, csv
+import asyncio, os, time, pyppeteer, pandas, csv
 from pyppeteer import launch
+from datetime import datetime
 
 #oR = ["33976-001", "34514-001", "5602993825-001"]
 #confirmCita=["7865881","7955784","7944631"]
@@ -12,6 +13,7 @@ firstDate = "2019-11-4 13:04:00"
 lateDate = "2019-11-4 13:04:00"
 
 #Walmart appointment extraction method
+#Consider change of user.
 async def wm_appointment_portal(user,passwd):
 
     browser = await launch(headless=False)
@@ -59,7 +61,7 @@ async def wm_appointment_portal(user,passwd):
         x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
         cita = await testpage.evaluate("(x2) => x2.innerText", x2)
         # Conversión a datetime
-        clean_cita = datetime.datetime.strptime(cita, "%m/%d/%y %I:%M %p")
+        clean_cita = datetime.strptime(cita, "%m/%d/%y %I:%M %p")
         master_citas.append([no_entrega, clean_cita])
 
     print("Succesful extraction...")
@@ -165,7 +167,7 @@ def verificacionCita():
     oR=[]
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Bepensa
-    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][1],usr[2][1])))
+    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][9],usr[2][9])))
     writed = open('Discrepancias.txt','w')
     
     #for i in range(len(data)):
@@ -175,18 +177,28 @@ def verificacionCita():
     #print(data[0][4])
     #print(data[0][1])
     master_light=[] #Master array of light db
-    print(len(data[0]))
+    #print(len(data[0]))
     #for i in range()
-    pands=lightReading(data[0][1][0]) #data[0][0][0] the file is inside [[[]]] 3 that's why 
-    print(len(pands))
-    print(usr[0][1])
-    if len(pands)<1:
-        writed.write("---Cuenta "+(usr[0][1])+'---')
-        writed.write("\nCita: "+data[0][1][0] +" sin capturar en OTM.")
-
-    for i in range(len(pands)): #It should be done by every register.
-        oR.append(pands.iloc[i]['ORDER_RELEASE_GID'])
-    otmData=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
+    arrTemp=data[0][2][1]
+    pands=lightReading(data[0][2][0]) #data[0][0][0] the file is inside [[[]]] 3 that's why 
+    fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
+    pands['month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
+    print(pands.head())
+    #if fecha==arrTemp:
+     #   print("true")
+    #fecha.datetime
+    #fecha.day()
+    #print(usr[0][1])
+    #if len(pands)<1:
+     #   writed.write("---Cuenta "+(usr[0][1])+'---')
+      #  writed.write("\nCita: "+data[0][1][0] +" sin capturar en OTM.")
+    #caso fecha no coincide en OTM
+    #caso hora no coincide en OTM
+    #if 
+    #caso folio no en OTM
+    #for i in range(len(pands)): #It should be done by every register.
+     #   oR.append(pands.iloc[i]['ORDER_RELEASE_GID'])
+    #otmData=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
     #print(otmDa
     # ta)
     #print("Data",data[0][1])
