@@ -3,7 +3,7 @@
         Heriberto Vasquez Sanchez
         Jose Rodrigo Narvaez Berlanga'''
 
-import asyncio, os, time, pyppeteer, pandas, csv
+import asyncio, os, time, pyppeteer, pandas, csv,numpy
 from pyppeteer import launch
 from datetime import datetime
 
@@ -166,95 +166,61 @@ def verificacionCita():
     data=[]
     oR=[]
     #falta que de click cuando #tip este en enabled.
-    #Por ahora lo probamos con Bepensa
+    #Por ahora lo probamos con Lenovo
     data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][9],usr[2][9])))
-    writed = open('Discrepancias.txt','w')
-    
-    #for i in range(len(data)):
-        #print(data[i]+"\n")
-        #writed.write(str(data[i]))
     #Then start comparing it with prime light dB
     #print(data[0][4])
-    #print(data[0][1])
+    #How to check if your date is alright
+    '''dda=data[0][1]
+    print(dda[1])
+    arrTempo=['11/12/2019 11:00:00 AM']
+    if dda[1]==arrTempo[0]:
+        print("True")'''
     master_light=[] #Master array of light db
     #print(len(data[0]))
-    #for i in range()
-    arrTemp=data[0][2][1]
-    pands=lightReading(data[0][2][0]) #data[0][0][0] the file is inside [[[]]] 3 that's why 
-    fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
-    pands['month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
-    print(pands.head())
+    for i in range(len(data)):
+        print(data[0][i][0])
+        pands=lightReading('FOLIO 5328480')
+        #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
+        fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
+        print(fecha.to_numpy()[0])
+        #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
+        '''if pands.empty:
+            pands=lightReading("FOLIO "+ data[0][i][0]) 
+            #1: Check if is empty:
+            if pands.empty:
+                master_light.append("Cita con folio: "+data[0][i][0]+" faltante, sin capturar en OTM")
+            else:
+                master_light.append("Formato de cita desactualizado: "+"FOLIO "+ data[0][i][0]+"||  Formato de cita adecuado: "+ data[0][i][0])
+        else:
+            #Now check date
+            fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
+            #important check if there is serveral that share folio so made it of OR.
+            fechaWal=(fecha)
+            if data[0][i][1]!=fecha:
+                master_light.append("Discordancia en fechas en cita con folio: "+data[0][i][0]+"\nFecha en portal: "+data[0][i][1]+"\nFecha en OTM: "+fecha)'''
+    print(master_light)
+    #pands['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month #create a new column if needed, print(pands[["Month"]])  
+    # Confirmation was not set 
+    # 2:     
+    #print(pands[["Mont"]].iloc[0])
     #if fecha==arrTemp:
      #   print("true")
     #fecha.datetime
     #fecha.day()
-    #print(usr[0][1])
-    #if len(pands)<1:
-     #   writed.write("---Cuenta "+(usr[0][1])+'---')
-      #  writed.write("\nCita: "+data[0][1][0] +" sin capturar en OTM.")
-    #caso fecha no coincide en OTM
-    #caso hora no coincide en OTM
-    #if 
     #caso folio no en OTM
     #for i in range(len(pands)): #It should be done by every register.
      #   oR.append(pands.iloc[i]['ORDER_RELEASE_GID'])
     #otmData=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
-    #print(otmDa
-    # ta)
-    #print("Data",data[0][1])
-    #print("Arr",len(arr))
-    #writed.write(str(data[0]))
-    '''for i in range(len(arr)):  
-        writed.write("\nDatos walmart: \n")    
-        writed.write(str(data[0][i]))
-        writed.write("\nDatos OTM: \n")      
-        writed.write(str(arr[i]))
-        writed.write("\n")'''
-    writed.close()
-
-    #Here we stract from wella. 
-    # data=[]
-    # oR=[]  
-    # data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][2],usr[2][2])))
-    # writed = open('Reporte Walmart.txt','w')
-    # writed.write("Datos Cuenta: Walmart \n")
-    #for i in range(len(data)):
-        #print(data[i]+"\n")
-        #writed.write(str(data[i]))
-    #Then start comparing it with prime light dB
-    # print(data[0][0])
-    #pands=lightReading(data[0][0][0])
-    #print(pands)
-    #oR.append(pands.iloc[0]['ORDER_RELEASE_GID'])
-    #oR.append(pands.iloc[1]['ORDER_RELEASE_GID'])
-    #oR.append(pands.iloc[2]['ORDER_RELEASE_GID'])
-    #arr=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
-    
-    #print("Data",data[0][1])
-    #print("Arr",len(arr))
-    #writed.write(str(data[0]))
-    #for i in range(len(arr)):  
-     #   writed.write("\nDatos walmart: \n")    
-      #  writed.write(str(data[0][i]))
-      #  writed.write("\nDatos OTM: \n")      
-       # writed.write(str(arr[i]))
-        #writed.write("\n")
-    #writed.close()
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading(cita):
-    # if cuenta == "WELLA":
-    #     data = pandas.read_csv("light.csv", encoding="ISO-8859-1")
-    #     tabla = data[(data["CUENTA"] == cuenta) & ((data["CONSIGNATARIO"] == "WALMART CEDIS 7482 SANTA BARBARA") | (data["CONSIGNATARIO"] == "WALMART CEDIS 7471 CHALCO"))]
-    #     print(tabla.head(16))
-    #     return tabla
     #Reading just confirmacion appointement needed
     data = pandas.read_csv("Prime_Light.csv", encoding="ISO-8859-1")
-    #confirmacion="FOLIO "+cita
     tabla = data[(data["CONFIRMACION CITA"]== cita)]
-    #appointment=tabla.iloc[1]['ORDER_RELEASE_GID']
-    return tabla#tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
+    #appointment=tabla.iloc[1]['ORDER_RELEASE_GID'], tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
+    return tabla
 
 #-----------------------------------------------------------------------------------------------------
 # Example of route call --->data=readFile(r'C:\Users\...\file.txt')
@@ -279,7 +245,6 @@ def readFile(route, typeF):  # ReadFile Method
                 passws.append(row[2])
             data = [cuentas, users, passws]
         return data
-
 
 #-----------------------------------------------------------------------------------------------------
 verificacionCita()
