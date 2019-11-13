@@ -36,10 +36,14 @@ async def wm_appointment_portal(user,passwd):
     await username.type(user)
     await password.type(passwd)
     await page.click(strbtn)
-    
-    await page.waitForNavigation()
-    print("Succesful login...Navigating")
-    
+    try: 
+        await page.waitForNavigation()
+        print("Succesful login...Navigating")
+    except:
+        print("Failed in log in :(")
+        await browser.close()
+        return []
+
     # Opening query session
     testpage = await browser.newPage()
     await testpage.goto("https://retaillink.wal-mart.com/navis/default.aspx")
@@ -50,8 +54,10 @@ async def wm_appointment_portal(user,passwd):
     # Opening this week Deliveries
     await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/trips_mx/quickQuery.do?type=thisWeeksDeliveries")
     xtabla = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody')
+    
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
+    print("LENGTH", tabla)
     master_citas = []
 
     for i in range(1, len(tabla) + 1):
@@ -167,7 +173,18 @@ def verificacionCita():
     oR=[]
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Lenovo
-    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][9],usr[2][9])))
+    with open(r'USUARIO WALMART.csv') as credentials:
+        gen_reader = csv.reader(credentials, delimiter = ',')
+        next(gen_reader, None) #Skips headers
+        for row in gen_reader:
+            account_name = row[0]
+            user = row[1]
+            password = row[2]
+            try:
+                data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
+            except:
+                print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)
+
     #Then start comparing it with prime light dB
     #print(data[0][4])
     #How to check if your date is alright
