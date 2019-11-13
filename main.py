@@ -61,7 +61,7 @@ async def wm_appointment_portal(user,passwd):
         x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
         cita = await testpage.evaluate("(x2) => x2.innerText", x2)
         # Conversión a datetime
-        clean_cita = datetime.strptime(cita, "%m/%d/%y %I:%M %p")
+        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')
         master_citas.append([no_entrega, clean_cita])
 
     print("Succesful extraction...")
@@ -167,7 +167,18 @@ def verificacionCita():
     oR=[]
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Lenovo
-    data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(usr[1][9],usr[2][9])))
+    with open(r'USUARIO WALMART.csv') as credentials:
+        gen_reader = csv.reader(credentials, delimiter = ',')
+        next(gen_reader, None) #Skips headers
+        for row in gen_reader:
+            account_name = row[0]
+            user = row[1]
+            password = row[2]
+            try:
+                data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
+            except:
+                print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)
+
     #Then start comparing it with prime light dB
     #print(data[0][4])
     #How to check if your date is alright
@@ -217,7 +228,7 @@ def verificacionCita():
 # Method that filter the info requierd from the prime light
 def lightReading(cita):
     #Reading just confirmacion appointement needed
-    data = pandas.read_csv("Prime_Light.csv", encoding="ISO-8859-1")
+    data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
     tabla = data[(data["CONFIRMACION CITA"]== cita)]
     #appointment=tabla.iloc[1]['ORDER_RELEASE_GID'], tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
     return tabla
