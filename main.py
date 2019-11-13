@@ -36,10 +36,14 @@ async def wm_appointment_portal(user,passwd):
     await username.type(user)
     await password.type(passwd)
     await page.click(strbtn)
-    
-    await page.waitForNavigation()
-    print("Succesful login...Navigating")
-    
+    try: 
+        await page.waitForNavigation()
+        print("Succesful login...Navigating")
+    except:
+        print("Failed in log in :(")
+        await browser.close()
+        return []
+
     # Opening query session
     testpage = await browser.newPage()
     await testpage.goto("https://retaillink.wal-mart.com/navis/default.aspx")
@@ -50,8 +54,10 @@ async def wm_appointment_portal(user,passwd):
     # Opening this week Deliveries
     await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/trips_mx/quickQuery.do?type=thisWeeksDeliveries")
     xtabla = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody')
+    
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
+    print("LENGTH", tabla)
     master_citas = []
 
     for i in range(1, len(tabla) + 1):
