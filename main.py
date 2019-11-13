@@ -57,7 +57,7 @@ async def wm_appointment_portal(user,passwd):
     
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
-    print("LENGTH", tabla)
+    #print("LENGTH", tabla)
     master_citas = []
 
     for i in range(1, len(tabla) + 1):
@@ -67,7 +67,7 @@ async def wm_appointment_portal(user,passwd):
         x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
         cita = await testpage.evaluate("(x2) => x2.innerText", x2)
         # Conversión a datetime
-        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')
+        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p').strftime('%m/%d/%Y %I:%M:%S %p')
         master_citas.append([no_entrega, clean_cita])
 
     print("Succesful extraction...")
@@ -168,9 +168,9 @@ async def captureOTM(oR):
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
-    usr=readFile(r'USUARIO WALMART.csv',"csv")
     data=[]
     oR=[]
+    master_light=[]
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Lenovo
     with open(r'USUARIO WALMART.csv') as credentials:
@@ -180,43 +180,48 @@ def verificacionCita():
             account_name = row[0]
             user = row[1]
             password = row[2]
-            try:
-                data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
-            except:
-                print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)
-
-    #Then start comparing it with prime light dB
-    #print(data[0][4])
-    #How to check if your date is alright
-    '''dda=data[0][1]
-    print(dda[1])
-    arrTempo=['11/12/2019 11:00:00 AM']
-    if dda[1]==arrTempo[0]:
-        print("True")'''
-    master_light=[] #Master array of light db
-    #print(len(data[0]))
-    for i in range(len(data)):
-        print(data[0][i][0])
-        pands=lightReading('FOLIO 5328480')
-        #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
-        fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
-        print(fecha.to_numpy()[0])
-        #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
-        '''if pands.empty:
-            pands=lightReading("FOLIO "+ data[0][i][0]) 
-            #1: Check if is empty:
-            if pands.empty:
-                master_light.append("Cita con folio: "+data[0][i][0]+" faltante, sin capturar en OTM")
-            else:
-                master_light.append("Formato de cita desactualizado: "+"FOLIO "+ data[0][i][0]+"||  Formato de cita adecuado: "+ data[0][i][0])
-        else:
-            #Now check date
-            fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
-            #important check if there is serveral that share folio so made it of OR.
-            fechaWal=(fecha)
-            if data[0][i][1]!=fecha:
-                master_light.append("Discordancia en fechas en cita con folio: "+data[0][i][0]+"\nFecha en portal: "+data[0][i][1]+"\nFecha en OTM: "+fecha)'''
-    print(master_light)
+            #try:
+            data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
+            for i in range(len(data)):
+                print(data[0][i][0])
+                pands=lightReading(data[0][i][0])
+                pandsArr=pands.to_numpy()
+                #print(pandsArr[0][len(pandsArr)-1])
+                #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
+                #fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
+                #print(fecha.to_numpy())
+                for j in range(len(pandsArr)):
+                    #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
+                    if pands.empty:
+                        pands=lightReading("FOLIO "+ data[0][i][0]) 
+                        #1: Check if is empty:
+                        if pands.empty:
+                            master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
+                        else:
+                            master_light.append("------------")
+                            master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
+                            master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
+                            master_light.append("------------")
+                    '''else if pands=lightReading(data[0][i][0]):
+                        master_light.append("------------")
+                        master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
+                        master_light.append("------------")'''
+                    else:
+                        #Now check date
+                        fecha=pandsArr[j][8]#[['EARLY DELIVERY DATE']])
+                        #important check if there is serveral that share folio so made it of OR.
+                        #fechaWal=(fecha)
+                        if data[0][i][1]!=fecha:
+                            master_light.append("------------")
+                            master_light.append("Discordancia en fechas en cita con folio: "+str(data[0][i][0]))
+                            master_light.append("Fecha en portal: "+str(data[0][i][1]))
+                            master_light.append("Fecha en OTM: "+str(fecha))
+                            master_light.append("------------")
+            print(master_light)
+            print("--------------")
+            '''except:
+                print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)'''
+    
     #pands['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month #create a new column if needed, print(pands[["Month"]])  
     # Confirmation was not set 
     # 2:     
