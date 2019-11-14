@@ -174,9 +174,11 @@ def verificacionCita():
     data=[]
     oR=[]
     master_light=[]
+    light=lightReading() #General reading
+    #lightArr=light.to_numpy()
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Lenovo
-    with open(r'USUARIO WALMART.csv') as credentials:
+    with open(r'USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -186,45 +188,45 @@ def verificacionCita():
             #try:
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
             print("DATA: ", master_citas)
-            for i in range(len(data)):
-                print(data[0][i][0])
-                pands=lightReading(data[0][i][0])
-                pandsArr=pands.to_numpy()
-                #print(pandsArr[0][len(pandsArr)-1])
-                #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
-                #fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
-                #print(fecha.to_numpy())
-                for j in range(len(pandsArr)):
-                    #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
-                    if pands.empty:
-                        pands=lightReading("FOLIO "+ data[0][i][0]) 
-                        #1: Check if is empty:
-                        if pands.empty:
-                            master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
-                        else:
-                            master_light.append("------------")
-                            master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
-                            master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
-                            master_light.append("------------")
-                        '''else if pands=lightReading(data[0][i][0]):
-                        master_light.append("------------")
-                        master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
-                        master_light.append("------------")'''
-                    else:
-                        #Now check date
-                        fecha=pandsArr[j][8]#[['EARLY DELIVERY DATE']])
-                        #important check if there is serveral that share folio so made it of OR.
-                        #fechaWal=(fecha)
-                        if data[0][i][1]!=fecha:
-                            master_light.append("------------")
-                            master_light.append("Discordancia en fechas en cita con folio: "+str(data[0][i][0]))
-                            master_light.append("Fecha en portal: "+str(data[0][i][1]))
-                            master_light.append("Fecha en OTM: "+str(fecha))
-                            master_light.append("------------")
-            print(master_light)
-            print("--------------")
-            '''except:
-                print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)'''
+            # for i in range(len(data)):
+            #     print(data[0][i][0])
+            #     pands=lightReading(data[0][i][0])
+            #     pandsArr=pands.to_numpy()
+            #     #print(pandsArr[0][len(pandsArr)-1])
+            #     #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
+            #     #fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
+            #     #print(fecha.to_numpy())
+            #     for j in range(len(pandsArr)):
+            #         #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
+            #         if pands.empty:
+            #             pands=lightReading("FOLIO "+ data[0][i][0]) 
+            #             #1: Check if is empty:
+            #             if pands.empty:
+            #                 master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
+            #             else:
+            #                 master_light.append("------------")
+            #                 master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
+            #                 master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
+            #                 master_light.append("------------")
+            #             '''else if pands=lightReading(data[0][i][0]):
+            #             master_light.append("------------")
+            #             master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
+            #             master_light.append("------------")'''
+            #         else:
+            #             #Now check date
+            #             fecha=pandsArr[j][8]#[['EARLY DELIVERY DATE']])
+            #             #important check if there is serveral that share folio so made it of OR.
+            #             #fechaWal=(fecha)
+            #             if data[0][i][1]!=fecha:
+            #                 master_light.append("------------")
+            #                 master_light.append("Discordancia en fechas en cita con folio: "+str(data[0][i][0]))
+            #                 master_light.append("Fecha en portal: "+str(data[0][i][1]))
+            #                 master_light.append("Fecha en OTM: "+str(fecha))
+            #                 master_light.append("------------")
+            # print(master_light)
+            # print("--------------")
+            # '''except:
+            #     print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)'''
     
     #pands['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month #create a new column if needed, print(pands[["Month"]])  
     # Confirmation was not set 
