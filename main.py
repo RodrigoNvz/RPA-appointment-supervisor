@@ -11,6 +11,8 @@ from datetime import datetime
 #confirmCita=["7865881","7955784","7944631"]
 firstDate = "2019-11-4 13:04:00"
 lateDate = "2019-11-4 13:04:00"
+data=[]
+master_citas = []
 
 #Walmart appointment extraction method
 #Consider change of user.
@@ -42,7 +44,8 @@ async def wm_appointment_portal(user,passwd):
     except:
         print("Failed in log in :(")
         await browser.close()
-        return []
+        return 0
+    
 
     # Opening query session
     testpage = await browser.newPage()
@@ -58,7 +61,7 @@ async def wm_appointment_portal(user,passwd):
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
     #print("LENGTH", tabla)
-    master_citas = []
+
 
     for i in range(1, len(tabla) + 1):
         index = str(i)
@@ -181,7 +184,8 @@ def verificacionCita():
             user = row[1]
             password = row[2]
             #try:
-            data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
+            print("DATA: ", master_citas)
             for i in range(len(data)):
                 print(data[0][i][0])
                 pands=lightReading(data[0][i][0])
@@ -202,7 +206,7 @@ def verificacionCita():
                             master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
                             master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
                             master_light.append("------------")
-                    '''else if pands=lightReading(data[0][i][0]):
+                        '''else if pands=lightReading(data[0][i][0]):
                         master_light.append("------------")
                         master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
                         master_light.append("------------")'''
