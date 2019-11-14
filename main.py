@@ -181,7 +181,8 @@ def verificacionCita():
             user = row[1]
             password = row[2]
             #try:
-            data.append(asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password)))
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
+            print("DATA: ", master_citas)
             for i in range(len(data)):
                 print(data[0][i][0])
                 pands=lightReading(data[0][i][0])
@@ -202,7 +203,7 @@ def verificacionCita():
                             master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
                             master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
                             master_light.append("------------")
-                    '''else if pands=lightReading(data[0][i][0]):
+                        '''else if pands=lightReading(data[0][i][0]):
                         master_light.append("------------")
                         master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
                         master_light.append("------------")'''
@@ -237,12 +238,12 @@ def verificacionCita():
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
-def lightReading(cita):
+def lightReading():
     #Reading just confirmacion appointement needed
     data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
-    tabla = data[(data["CONFIRMACION CITA"]== cita)]
+    #tabla = data[(data["CONFIRMACION CITA"]== cita)]
     #appointment=tabla.iloc[1]['ORDER_RELEASE_GID'], tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
-    return tabla
+    return data
 
 #-----------------------------------------------------------------------------------------------------
 # Example of route call --->data=readFile(r'C:\Users\...\file.txt')
