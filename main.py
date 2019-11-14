@@ -11,6 +11,8 @@ from datetime import datetime
 #confirmCita=["7865881","7955784","7944631"]
 firstDate = "2019-11-4 13:04:00"
 lateDate = "2019-11-4 13:04:00"
+data=[]
+master_citas = []
 
 #Walmart appointment extraction method
 #Consider change of user.
@@ -42,7 +44,8 @@ async def wm_appointment_portal(user,passwd):
     except:
         print("Failed in log in :(")
         await browser.close()
-        return []
+        return 0
+    
 
     # Opening query session
     testpage = await browser.newPage()
@@ -58,7 +61,7 @@ async def wm_appointment_portal(user,passwd):
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
     #print("LENGTH", tabla)
-    master_citas = []
+
 
     for i in range(1, len(tabla) + 1):
         index = str(i)
