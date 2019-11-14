@@ -7,11 +7,6 @@ import asyncio, os, time, pyppeteer, pandas, csv,numpy
 from pyppeteer import launch
 from datetime import datetime
 
-#oR = ["33976-001", "34514-001", "5602993825-001"]
-#confirmCita=["7865881","7955784","7944631"]
-firstDate = "2019-11-4 13:04:00"
-lateDate = "2019-11-4 13:04:00"
-data=[]
 master_citas = []
 
 #Walmart appointment extraction method
@@ -174,7 +169,7 @@ def verificacionCita():
     data=[]
     oR=[]
     master_light=[]
-    light=lightReading() #General reading
+    light=lightReading() #Reading of Prime_light
     #lightArr=light.to_numpy()
     #falta que de click cuando #tip este en enabled.
     #Por ahora lo probamos con Lenovo
@@ -187,10 +182,45 @@ def verificacionCita():
             password = row[2]
             #try:
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
-            print("DATA: ", master_citas)
+            #print("DATA: ", master_citas)
+            #print("DATA: ", master_citas[0])
+            for i in range (len(master_citas)):
+                #print(master_citas[i][0])
+                tabla = light[(light["CONFIRMACION CITA"]==master_citas[i][0])]
+                tablaArr=tabla.to_numpy() 
+                if tabla.empty:
+                    tabla = light[(light["CONFIRMACION CITA"]== ('FOLIO ',(master_citas[i][0])))]
+                    if tabla.empty:
+                        master_light.append("Faltante, sin capturar en OTM")
+                        print("Vacia")
+                    else:
+                        master_light.append("------------")
+                        master_light.append("Formato de cita desactualizado")
+                        master_light.append("Formato de cita adecuado: 7944631")
+                        master_light.append("------------")
+                else:
+                #print("No vacia")
+                    fecha=tabla[['EARLY DELIVERY DATE']].to_numpy
+                    destino=tabla[['DESTINO FINAL']].to_numpy
+                    #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
+                    #print(fecha)
+                    #print(destino)
+                    '''if ("31/10/2019  12:00:00 AM")!=fecha:
+                        master_light.append("------------")
+                        master_light.append("Discordancia en fechas en cita con folio: ")
+                        master_light.append("Fecha en portal: ")
+                        master_light.append("Fecha en OTM: ")
+                        master_light.append("------------")
+                        print("Good one")
+                    else:
+                        print("Real one")'''
+                destino=tabla[['DESTINO FINAL']].to_numpy
+                print(destino)
+                fecha=tabla[['EARLY DELIVERY DATE']]
+                #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
+                
+            print(master_light)
             # for i in range(len(data)):
-            #     print(data[0][i][0])
-            #     pands=lightReading(data[0][i][0])
             #     pandsArr=pands.to_numpy()
             #     #print(pandsArr[0][len(pandsArr)-1])
             #     #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
@@ -244,7 +274,6 @@ def verificacionCita():
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading():
-    #Reading just confirmacion appointement needed
     data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
     #tabla = data[(data["CONFIRMACION CITA"]== cita)]
     #appointment=tabla.iloc[1]['ORDER_RELEASE_GID'], tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
