@@ -7,10 +7,10 @@ import asyncio, os, time, pyppeteer, pandas, csv,numpy
 from pyppeteer import launch
 from datetime import datetime
 
-master_citas = []
+master_citas = [] #master all appointments
+master_report = [] #master all reports by Control Vehicular
 
 #Walmart appointment extraction method
-#Consider change of user.
 async def wm_appointment_portal(user,passwd):
 
     browser = await launch(headless=False)
@@ -26,8 +26,6 @@ async def wm_appointment_portal(user,passwd):
 
     username = await page.querySelector(strusername)
     password = await page.querySelector(strpass)
-
-    #data = readFile(r"walmartD.txt", "txt")
 
     print("Filling form...")
     await username.type(user)
@@ -166,13 +164,7 @@ async def captureOTM(oR):
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
-    data=[]
-    oR=[]
-    master_light=[]
-    light=lightReading() #Reading of Prime_light
-    #lightArr=light.to_numpy()
-    #falta que de click cuando #tip este en enabled.
-    #Por ahora lo probamos con Lenovo
+    #extract all apointments on master all citas
     with open(r'USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
@@ -180,103 +172,44 @@ def verificacionCita():
             account_name = row[0]
             user = row[1]
             password = row[2]
-            #try:
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
-            #print("DATA: ", master_citas)
-            #print("DATA: ", master_citas[0])
-            for i in range (len(master_citas)):
-                #print(master_citas[i][0])
-                tabla = light[(light["CONFIRMACION CITA"]==master_citas[i][0])]
-                tablaArr=tabla.to_numpy() 
-                if tabla.empty:
-                    tabla = light[(light["CONFIRMACION CITA"]== ('FOLIO ',(master_citas[i][0])))]
-                    if tabla.empty:
-                        master_light.append("Faltante, sin capturar en OTM")
-                        print("Vacia")
-                    else:
-                        master_light.append("------------")
-                        master_light.append("Formato de cita desactualizado")
-                        master_light.append("Formato de cita adecuado: 7944631")
-                        master_light.append("------------")
-                else:
-                #print("No vacia")
-                    fecha=tabla[['EARLY DELIVERY DATE']].to_numpy
-                    destino=tabla[['DESTINO FINAL']].to_numpy
-                    #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
-                    #print(fecha)
-                    #print(destino)
-                    '''if ("31/10/2019  12:00:00 AM")!=fecha:
-                        master_light.append("------------")
-                        master_light.append("Discordancia en fechas en cita con folio: ")
-                        master_light.append("Fecha en portal: ")
-                        master_light.append("Fecha en OTM: ")
-                        master_light.append("------------")
-                        print("Good one")
-                    else:
-                        print("Real one")'''
-                destino=tabla[['DESTINO FINAL']].to_numpy
-                print(destino)
-                fecha=tabla[['EARLY DELIVERY DATE']]
-                #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
-                
-            print(master_light)
-            # for i in range(len(data)):
-            #     pandsArr=pands.to_numpy()
-            #     #print(pandsArr[0][len(pandsArr)-1])
-            #     #pands=lightReading(data[0][i][0])  #the file is inside [[[]]] 3 that's why
-            #     #fecha=pands[['EARLY DELIVERY DATE']]#[['EARLY DELIVERY DATE']])
-            #     #print(fecha.to_numpy())
-            #     for j in range(len(pandsArr)):
-            #         #Check if Folio is bad format Example Folio +7734453... (good format: 7734454...)
-            #         if pands.empty:
-            #             pands=lightReading("FOLIO "+ data[0][i][0]) 
-            #             #1: Check if is empty:
-            #             if pands.empty:
-            #                 master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
-            #             else:
-            #                 master_light.append("------------")
-            #                 master_light.append("Formato de cita desactualizado: "+"FOLIO "+ str(data[0][i][0]))
-            #                 master_light.append("Formato de cita adecuado: "+ str(data[0][i][0]))
-            #                 master_light.append("------------")
-            #             '''else if pands=lightReading(data[0][i][0]):
-            #             master_light.append("------------")
-            #             master_light.append("Cita con folio: "+str(data[0][i][0])+" faltante, sin capturar en OTM")
-            #             master_light.append("------------")'''
-            #         else:
-            #             #Now check date
-            #             fecha=pandsArr[j][8]#[['EARLY DELIVERY DATE']])
-            #             #important check if there is serveral that share folio so made it of OR.
-            #             #fechaWal=(fecha)
-            #             if data[0][i][1]!=fecha:
-            #                 master_light.append("------------")
-            #                 master_light.append("Discordancia en fechas en cita con folio: "+str(data[0][i][0]))
-            #                 master_light.append("Fecha en portal: "+str(data[0][i][1]))
-            #                 master_light.append("Fecha en OTM: "+str(fecha))
-            #                 master_light.append("------------")
-            # print(master_light)
-            # print("--------------")
-            # '''except:
-            #     print('Error in account: ', account_name, '\n* user:', user, '\n* psswd:', password)'''
+
+    #print(master_citas)
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("wz5u0xe","Caribe339"))
+    #Now read prime light
+    light=lightReading()
+    lightArr=light.to_numpy()
+
+    for i in range(len(master_citas)):
+        tabla=light[(light["CONFIRMATION"]==master_citas[i][0])]
+        tablaArr=tabla.to_numpy()
+        print(tabla[['LATE DELIVERY DATE']])
+        if tabla.empty:
+            print("Walmart Appointment not MATCHED ON OTM")
+        else:
+            #adjust date according to sites
+            if tabla[['DESTINO FINAL']]=='Monterrey':
+                print("")
+            '''else if tabla[['DESTINO FINAL']]=='San Martin Obispo':
+                print("")
+            else if tabla[['DESTINO FINAL']]=='Culiacan':
+                print("")'''
+            #then compare both dates
+            if tabla[['LATE DELIVERY DATE']]!=master_citas[i][1]:
+                print("Inconsistencias en fechas")
+            #print(tabla[['LATE DELIVERY DATE']])
+            #if tabla[['LATE DELIVERY DATE']]:
+
+            #destino=tabla[['DESTINO FINAL']].to_numpy
+            #print(destino)
+            #fecha=tabla[['EARLY DELIVERY DATE']]
+            #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
     
-    #pands['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month #create a new column if needed, print(pands[["Month"]])  
-    # Confirmation was not set 
-    # 2:     
-    #print(pands[["Mont"]].iloc[0])
-    #if fecha==arrTemp:
-     #   print("true")
-    #fecha.datetime
-    #fecha.day()
-    #caso folio no en OTM
-    #for i in range(len(pands)): #It should be done by every register.
-     #   oR.append(pands.iloc[i]['ORDER_RELEASE_GID'])
-    #otmData=asyncio.get_event_loop().run_until_complete(captureOTM(oR))
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading():
     data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
-    #tabla = data[(data["CONFIRMACION CITA"]== cita)]
-    #appointment=tabla.iloc[1]['ORDER_RELEASE_GID'], tabla[['CONSIGNATARIO','ORDER_RELEASE_GID','EARLY DELIVERY DATE','LATE DELIVERY DATE','CUENTA','CR','CONFIRMACION CITA']]
     return data
 
 #-----------------------------------------------------------------------------------------------------
