@@ -54,19 +54,26 @@ async def wm_appointment_portal(user,passwd):
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
     #print("LENGTH", tabla)
-
-
-    for i in range(1, len(tabla) + 1):
-        index = str(i)
-        x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
-        no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
-        x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
-        cita = await testpage.evaluate("(x2) => x2.innerText", x2)
-        # Conversión a datetime
-        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p').strftime('%m/%d/%Y %I:%M:%S %p')
-        master_citas.append([no_entrega, clean_cita])
-
-    print("Succesful extraction...")
+    
+    #Use try to manage when there are no near appointments 
+    noAppointFound= await page.querySelector("[class='valueTd']")
+    #print(noAppointFound)
+    #noAppointments=await page.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
+    #print(noAppointments)
+    '''if noAppointments=='0':
+        print("NO APPOINTMENTS IN PORTAL")
+    else:
+        for i in range(1, len(tabla) + 1):
+            index = str(i)
+            x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
+            no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
+            x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
+            cita = await testpage.evaluate("(x2) => x2.innerText", x2)
+            # Conversión a datetime
+            clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p').strftime('%m/%d/%Y %I:%M:%S %p')
+            master_citas.append([no_entrega, clean_cita])
+        
+    print("Succesful extraction...")'''
     # for i in range(len(master_citas)):
     #   print("VALUE: ",master_citas[i])
     await page.waitFor(5000)
@@ -172,27 +179,31 @@ def verificacionCita():
             account_name = row[0]
             user = row[1]
             password = row[2]
-            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))
+            if user=='qp4j4ga':
+                password='Agosto2020'
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))            
 
-    #print(master_citas)
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("wz5u0xe","Caribe339"))
     #Now read prime light
     light=lightReading()
     lightArr=light.to_numpy()
 
+    #Para beam suntory hfc
+
     for i in range(len(master_citas)):
         tabla=light[(light["CONFIRMATION"]==master_citas[i][0])]
         tablaArr=tabla.to_numpy()
-        print(tabla[['LATE DELIVERY DATE']])
+        #print(tabla[['LATE DELIVERY DATE']])
         if tabla.empty:
             print("Walmart Appointment not MATCHED ON OTM")
         else:
             #adjust date according to sites
-            if tabla[['DESTINO FINAL']]=='Monterrey':
+            print(tabla[['DESTINO FINAL']])
+            '''if tabla[['DESTINO FINAL']]=='Monterrey':
                 print("")
-            '''else if tabla[['DESTINO FINAL']]=='San Martin Obispo':
+            if tabla[['DESTINO FINAL']]=='San Martin Obispo':
                 print("")
-            else if tabla[['DESTINO FINAL']]=='Culiacan':
+            if tabla[['DESTINO FINAL']]=='Culiacan':
                 print("")'''
             #then compare both dates
             if tabla[['LATE DELIVERY DATE']]!=master_citas[i][1]:
