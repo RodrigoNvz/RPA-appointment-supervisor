@@ -3,9 +3,9 @@
         Heriberto Vasquez Sanchez
         Jose Rodrigo Narvaez Berlanga'''
 
-import asyncio, os, time, pyppeteer, pandas, csv,numpy
+import asyncio, os, time, pyppeteer, pandas, csv,numpy,calendar
 from pyppeteer import launch
-from datetime import datetime
+from datetime import datetime,timedelta
 
 master_citas = [] #master all appointments
 master_report = [] #master all reports by Control Vehicular
@@ -62,18 +62,18 @@ async def wm_appointment_portal(user,passwd):
     #print(noAppointments)
     '''if noAppointments=='0':
         print("NO APPOINTMENTS IN PORTAL")
-    else:
-        for i in range(1, len(tabla) + 1):
-            index = str(i)
-            x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
-            no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
-            x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
-            cita = await testpage.evaluate("(x2) => x2.innerText", x2)
-            # Conversión a datetime
-            clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p').strftime('%m/%d/%Y %I:%M:%S %p')
-            master_citas.append([no_entrega, clean_cita])
+    else:'''
+    for i in range(1, len(tabla) + 1):
+        index = str(i)
+        x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
+        no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
+        x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
+        cita = await testpage.evaluate("(x2) => x2.innerText", x2)
+        # Conversión a datetime
+        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
+        master_citas.append([no_entrega, clean_cita])
         
-    print("Succesful extraction...")'''
+    print("Succesful extraction...")
     # for i in range(len(master_citas)):
     #   print("VALUE: ",master_citas[i])
     await page.waitFor(5000)
@@ -172,7 +172,7 @@ async def captureOTM(oR):
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
     #extract all apointments on master all citas
-    with open(r'USUARIO.csv') as credentials:
+    '''with open(r'USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -181,16 +181,79 @@ def verificacionCita():
             password = row[2]
             if user=='qp4j4ga':
                 password='Agosto2020'
-            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))            
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))'''       
 
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("wz5u0xe","Caribe339"))
+    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("n04fw2y","Lenovo48"))
     #Now read prime light
     light=lightReading()
     lightArr=light.to_numpy()
-
-    #Para beam suntory hfc
-
     for i in range(len(master_citas)):
+        #Just Lenovo right now.
+        tabla=light[(light["CONFIRMATION"]== (int)(master_citas[i][0]))]
+
+        tabla['LATE DELIVERY DATE']=tabla['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) 
+        #tablaArr=tabla.to_numpy()
+        #Generate Hour Day and Day of week from otm to debug
+ 
+        tabla['Hour']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.hour
+        tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+        tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+
+        #extract hour day and day of week from Walmart
+        wmHour=master_citas[i][1].hour
+        wmDay=master_citas[i][1].day
+        wmDayWeek=master_citas[i][1].strftime("%A")
+
+        #print(wmHour)
+        #print(wmDay)
+        #print(wmDayWeek)
+        #print(tabla)
+        if tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
+            if any(tabla['Hour']>=16):
+                #generate structure to manage date properly.
+                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
+                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                #tabla['Day']=tabla['Day']-1
+                #tabla['LATE DELIVERY DATE']=
+                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
+                print("cambiado")
+                #print(tabla)
+            #apartir de las 4pm se pone un día antes esto al corroborar ambas.
+        #print(tabla.head(11))
+
+        if tabla['DESTINO FINAL'].str.contains('CULIACAN').any():
+            if any(tabla['Hour']>=20):
+                #generate structure to manage date properly.
+                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
+                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                #tabla['Day']=tabla['Day']-1
+                #tabla['LATE DELIVERY DATE']=
+                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
+                print("cambiado")
+                #print(tabla)
+
+
+        if tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
+            if any(tabla['Hour']>=21):
+                #generate structure to manage date properly.
+                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
+                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                #tabla['Day']=tabla['Day']-1
+                #tabla['LATE DELIVERY DATE']=
+                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
+                print("cambiado")
+                #print(tabla)
+
+        if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
+            print("Cita con confirmacion: ",master_citas[i][0]," no capturada")
+    
+
+
+    #print(master_citas[0][0])
+    '''for i in range(len(master_citas)):
         tabla=light[(light["CONFIRMATION"]==master_citas[i][0])]
         tablaArr=tabla.to_numpy()
         #print(tabla[['LATE DELIVERY DATE']])
@@ -199,12 +262,12 @@ def verificacionCita():
         else:
             #adjust date according to sites
             print(tabla[['DESTINO FINAL']])
-            '''if tabla[['DESTINO FINAL']]=='Monterrey':
+            if tabla[['DESTINO FINAL']]=='Monterrey':
                 print("")
             if tabla[['DESTINO FINAL']]=='San Martin Obispo':
                 print("")
             if tabla[['DESTINO FINAL']]=='Culiacan':
-                print("")'''
+                print("")
             #then compare both dates
             if tabla[['LATE DELIVERY DATE']]!=master_citas[i][1]:
                 print("Inconsistencias en fechas")
@@ -214,13 +277,14 @@ def verificacionCita():
             #destino=tabla[['DESTINO FINAL']].to_numpy
             #print(destino)
             #fecha=tabla[['EARLY DELIVERY DATE']]
-            #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month
+            #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month'''
     
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading():
     data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
+    #data = pandas.read_csv(r'Examples.csv', encoding="ISO-8859-1")
     return data
 
 #-----------------------------------------------------------------------------------------------------
