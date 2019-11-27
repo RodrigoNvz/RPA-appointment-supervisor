@@ -11,12 +11,13 @@ master_citas = [] #master all appointments
 master_report = [] #master all reports by Control Vehicular
 
 #Walmart appointment extraction method
-async def wm_appointment_portal(user,passwd):
+async def wm_appointment_portal(user,passwd,account_name):
 
     browser = await launch(headless=False)
     strusername = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(1) > span > span > input"
     strpass = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(2) > span > span > input"
     strbtn = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > button"
+    entregasEncontradas="#mc > tbody > tr:nth-child(2) > td.contentPanel > table > tbody > tr:nth-child(4) > td > form > table > tbody > tr > td > table > tbody > tr.contentBodyRow > td.contentBody > table.formTable > tbody > tr:nth-child(2) > td.valueTd"
 
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
@@ -35,7 +36,7 @@ async def wm_appointment_portal(user,passwd):
         await page.waitForNavigation()
         print("Succesful login...Navigating")
     except:
-        print("Failed in log in :(")
+        print("Failed in",account_name,"login.")
         await browser.close()
         return 0
     
@@ -56,32 +57,33 @@ async def wm_appointment_portal(user,passwd):
     #print("LENGTH", tabla)
     
     #Use try to manage when there are no near appointments 
-    noAppointFound= await page.querySelector("[class='valueTd']")
-    #print(noAppointFound)
-    #noAppointments=await page.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
-    #print(noAppointments)
-    '''if noAppointments=='0':
-        print("NO APPOINTMENTS IN PORTAL")
-    else:'''
-    for i in range(1, len(tabla) + 1):
-        index = str(i)
-        x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
-        no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
-        x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
-        cita = await testpage.evaluate("(x2) => x2.innerText", x2)
-        # Conversión a datetime
-        clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
-        master_citas.append([no_entrega, clean_cita])
-        
-    print("Succesful extraction...")
-    # for i in range(len(master_citas)):
-    #   print("VALUE: ",master_citas[i])
-    await page.waitFor(5000)
-    try:
+
+    noAppointFound= await testpage.querySelector(entregasEncontradas)
+    noAppointments=await testpage.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
+    if noAppointments=='0':
+        print("NO",account_name,"APPOINTMENTS IN PORTAL")
+        await page.waitFor(5000)
         await browser.close()
-    except:
-        print("Error al cerrar, same as always")
-    return master_citas
+    else:
+        for i in range(1, len(tabla) + 1):
+            index = str(i)
+            x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
+            no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
+            x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
+            cita = await testpage.evaluate("(x2) => x2.innerText", x2)
+            # Conversión a datetime
+            clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
+            master_citas.append([no_entrega, clean_cita])
+        
+        print("Succesful",account_name,"extraction")
+        # for i in range(len(master_citas)):
+        #   print("VALUE: ",master_citas[i])
+        await page.waitFor(5000)
+        try:
+            await browser.close()
+        except:
+            print("Error al cerrar, same as always")
+        return master_citas
 
 
 #-----------------------------------------------------------------------------------------------------
@@ -172,85 +174,81 @@ async def captureOTM(oR):
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
     #extract all apointments on master all citas
-    '''with open(r'USUARIO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\TEMP\Citas\USUARIO WALMART.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
             account_name = row[0]
             user = row[1]
             password = row[2]
-            if user=='qp4j4ga':
+            if account_name=='JDE COFFE':
                 password='Agosto2020'
-            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password))'''       
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))    
 
-    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("n04fw2y","Lenovo48"))
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("54c6734","Motorola543"))
     #Now read prime light
     light=lightReading()
     lightArr=light.to_numpy()
+
     for i in range(len(master_citas)):
-        #Just Lenovo right now.
-        tabla=light[(light["CONFIRMATION"]== (int)(master_citas[i][0]))]
+        tabla=light[(light["CONFIRMATION"]== (int)(master_citas[i][0]))]        
 
-        tabla['LATE DELIVERY DATE']=tabla['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) 
-        #tablaArr=tabla.to_numpy()
-        #Generate Hour Day and Day of week from otm to debug
- 
-        tabla['Hour']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.hour
-        tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-        tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+        if tabla.empty:
+            print("Cita",master_citas[i][0],"no capturada en OTM") 
+        else:
+            tabla['LATE DELIVERY DATE']=tabla['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) 
+            
+            #tablaArr=tabla.to_numpy()            
+            #Generate Hour Day and Day of week from otm 
+            tabla['Hour']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.hour
+            tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
 
-        #extract hour day and day of week from Walmart
-        wmHour=master_citas[i][1].hour
-        wmDay=master_citas[i][1].day
-        wmDayWeek=master_citas[i][1].strftime("%A")
+            #extract hour day and day of week from Walmart
+            wmHour=master_citas[i][1].hour
+            wmDay=master_citas[i][1].day
+            wmDayWeek=master_citas[i][1].strftime("%A")
 
-        #print(wmHour)
-        #print(wmDay)
-        #print(wmDayWeek)
-        #print(tabla)
-        if tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
-            if any(tabla['Hour']>=16):
-                #generate structure to manage date properly.
-                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
-                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                #tabla['Day']=tabla['Day']-1
-                #tabla['LATE DELIVERY DATE']=
-                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
-                print("cambiado")
-                #print(tabla)
-            #apartir de las 4pm se pone un día antes esto al corroborar ambas.
-        #print(tabla.head(11))
+            if tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
+                if any(tabla['Hour']>=16):
+                    #generate structure to manage date properly.
+                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                    #print("cambiado")
+                    #print(tabla)
+                #apartir de las 4pm se pone un día antes esto al corroborar ambas.
+            #print(tabla.head(11))
 
-        if tabla['DESTINO FINAL'].str.contains('CULIACAN').any():
-            if any(tabla['Hour']>=20):
-                #generate structure to manage date properly.
-                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
-                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                #tabla['Day']=tabla['Day']-1
-                #tabla['LATE DELIVERY DATE']=
-                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
-                print("cambiado")
-                #print(tabla)
+            elif tabla['DESTINO FINAL'].str.contains('CULIACAN').any():
+                if any(tabla['Hour']>=20):
+                    #generate structure to manage date properly.
+                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                    #print("cambiado")
+                    #print(tabla)
 
-
-        if tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
-            if any(tabla['Hour']>=21):
-                #generate structure to manage date properly.
-                tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])-timedelta(days=1)
-                tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                #tabla['Day']=tabla['Day']-1
-                #tabla['LATE DELIVERY DATE']=
-                #tabla['Day of the week']=(pandas.to_datetime(tabla['LATE DELIVERY DATE'])-1).dt.day_name()
-                print("cambiado")
-                #print(tabla)
-
-        if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
-            print("Cita con confirmacion: ",master_citas[i][0]," no capturada")
-    
-
+            elif tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
+                if any(tabla['Hour']>=21):
+                    #generate structure to manage date properly.
+                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                    #print("cambiado")
+                    #print(tabla)
+            else:
+                if any(tabla['Hour']>=18):
+                    #generate structure to manage date properly.
+                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+                    #print("cambiado")
+                    #print(tabla)
+                
+            if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
+                print("\nCita con confirmacion",master_citas[i][0],"inconsistente")
+                print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
 
     #print(master_citas[0][0])
     '''for i in range(len(master_citas)):
