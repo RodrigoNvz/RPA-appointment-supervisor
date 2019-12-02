@@ -174,7 +174,7 @@ async def captureOTM(oR):
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
     #extract all apointments on master all citas
-    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\TEMP\Citas\USUARIO WALMART.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
