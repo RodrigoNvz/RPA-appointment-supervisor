@@ -21,7 +21,7 @@ async def wm_appointment_portal(user,passwd,account_name):
 
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
-    page.setDefaultNavigationTimeout(60000)
+    page.setDefaultNavigationTimeout(30000) # maybe 60000
     await page.goto("https://retaillink.login.wal-mart.com/?ServerType=IIS1&CTAuthMode=BASIC&language=en&utm_source=retaillink&utm_medium=redirect&utm_campaign=FalconRelease&CT_ORIG_URL=/&ct_orig_uri=/")
     await page.waitFor(strusername)
 
@@ -88,7 +88,7 @@ async def wm_appointment_portal(user,passwd,account_name):
 
 #-----------------------------------------------------------------------------------------------------
 #Validate appointments in OTM 
-async def captureOTM(oR):
+async def captureOTM(arrCR):
     # try:
     # browser = await launch({'args': ['--disable-dev-shm-usage']})
     browser = await launch(headless=False)  # headless false means open the browser in the operation
@@ -96,22 +96,23 @@ async def captureOTM(oR):
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
     page.setDefaultNavigationTimeout(60000)
     await page.goto("https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login")
-    await page.waitFor(1000)
-    data = readFile(r"appointData.txt", "txt")
-    await page.waitFor("[name='userpassword']")
-    await page.waitFor("[name='username']")
-    await page.type("[name='userpassword']", data[1])
-    await page.type("[name='username']", data[0])
-    # await page.click("[name='submitbutton']") 
+    # await page.waitFor(2000) 
+    data=readFile(r"appointData.txt", "txt")
+    passw=await page.waitFor("[name='userpassword']")
+    usernN=await page.waitFor("[name='username']")
+    await passw.type(data[1])
+    await usernN.type(data[0])
+       
+    await page.click("[name='submitbutton']")  
     returned=[]
-    for i in range(len(oR)):
+    for i in range(len(arrCR)):
         valuei=[]
         await page.goto("https://dsctmsr2.dhl.com/GC3/glog.webserver.finder.FinderServlet?ct=NzY5Nzg2NjExNDQwNjgzNTIyMg%3D%3D&query_name=glog.server.query.order.OrderReleaseQuery&finder_set_gid=MXCORP.MX%20OM%20ORDER%20RELEASE")
         await page.waitFor(1000)
         await page.waitFor("[name='order_release/xid']")  # Wait for the order release
         # await page.waitFor("[name='orrOrderReleaseRefnumValue59']") #Wait for the CR
-        await page.type("[name='order_release/xid']", oR[i])
-        # await page.type("[name='orrOrderReleaseRefnumValue59']",cR[i])
+        #await page.type("[name='order_release/xid']", oR[i])
+        await page.type("[name='orrOrderReleaseRefnumValue59']",arrCR[i])
         await page.keyboard.press("Enter")
         # Aqui checamos si la cita hace match con el sitio web de walmart
         await page.waitFor("[tabindex='201']")
@@ -126,49 +127,70 @@ async def captureOTM(oR):
         #containedTxt=content.split(" ")
         #if(len(containedTxt)>=2):
             #print(containedTxt[1])
-        valuei.append(folio)
-        valuei.append(eDate)
-        valuei.append(lDate)
-        valuei.append(consignatario)
-        returned.append(valuei)
+        
+        # valuei.append(folio)
+        # valuei.append(eDate)
+        # valuei.append(lDate)
+        # valuei.append(consignatario)
+        # returned.append(valuei)
 
-        # await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
-        # await page.waitFor(1000)
-        # await page.click("[name='rgSGSec.1.1.1.1.check']")
-        # await page.waitFor("[title='Mass Update']")
-        # await page.waitFor(1000)
-        # await page.click("[title='Mass Update']")
-        # frames=page.frames
-        # temp= len(frames)
-        # while temp < 3 : #Wait until the frame is loaded
-        #     temp= len(frames)
-        # frame = page.frames[3]
-        # #await page.waitFor(1000)
-        # await frame.waitFor("[name='order_release/delivery_is_appt']")
-        # await frame.waitFor("[name='order_release/early_delivery_date']")
-        # await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
-        # await frame.waitFor("[name='order_release/ship_with_group']")
+        await page.waitFor("[name='rgSGSec.1.1.1.1.check']")
+        await page.waitFor(1000)
+        await page.click("[name='rgSGSec.1.1.1.1.check']")
+        await page.waitFor("[title='Mass Update']")
+        await page.waitFor(1000)
+        await page.click("[title='Mass Update']")
+        frames=page.frames
+        temp= len(frames)
+        while temp < 3 : #Wait until the frame is loaded
+            temp= len(frames)
+        frame = page.frames[3]
+        #await page.waitFor(1000)
+        await frame.waitFor("[name='order_release/delivery_is_appt']")
+        await frame.waitFor("[name='order_release/early_delivery_date']")
+        await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
+        await frame.waitFor("[name='order_release/ship_with_group']")
         # #print("Success")
         # checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
         # buttonstatus=await(await checked.getProperty('checked')).jsonValue()
         # if buttonstatus==True:
         #     await frame.type("[name='order_release/late_delivery_date']",lateDate)
         # else:
-        #     await frame.type("[name='order_release/ship_with_group']",cR[i])
-        #     await frame.type("[name='order_release/early_delivery_date']",firstDate)
-        #     await frame.type("[name='order_release/late_delivery_date']",lateDate)
-        #     await frame.click("[name='order_release/delivery_is_appt']")
+        await frame.type("[name='order_release/ship_with_group']",arrCR[i])
+        #await frame.type("[name='order_release/early_delivery_date']",firstDate)
+        await frame.type("[name='order_release/late_delivery_date']","lateDate")
+        await frame.click("[name='order_release/delivery_is_appt']")
+        await frame.waitFor(1000)
         #print("PASSED")
     #print("SUCCESS----")
-    return returned
+    '''return returned
     await page.waitFor(3000)
-    await browser.close()
+    await browser.close()'''
 
 # except:
 #     await browser.close()
 #     print("FAILED----")
 #     print("RETRYING----")
 #     await captureOTM()
+
+
+def destinoFinal():
+    masterClienteDestino=[]
+    with open(r'C:\Users\jesushev\Desktop\CLIENTE DESTINO.csv') as credentials:
+        gen_reader = csv.reader(credentials, delimiter = ',')
+        next(gen_reader, None) #Skips headers        
+        for row in gen_reader:
+            tempCD=[]
+            clienteDestino = row[0]
+            destino = row[1]
+            minTime = row[2]
+            maxTime = row[3]
+            tempCD.append(clienteDestino)
+            tempCD.append(destino)
+            tempCD.append(minTime)
+            tempCD.append(maxTime)
+            masterClienteDestino.append(tempCD)
+    return masterClienteDestino
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
@@ -183,106 +205,145 @@ def verificacionCita():
             password = row[2]
             if account_name=='JDE COFFE':
                 password='Agosto2020'
-            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))    
-
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("54c6734","Motorola543"))
-    #Now read prime light
-    light=lightReading()
+            asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
+    
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("n04fw2y","Lenovo49","LENOVO"))
+    
+    light=lightReading(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv')#Now read prime light
+    #light=lightReading(r'C:\Users\jesushev\Desktop\CLIENTE.csv')
     lightArr=light.to_numpy()
+    #Obtain schedule with csv predefined 
+    
 
-    for i in range(len(master_citas)):
-        tabla=light[(light["CONFIRMATION"]== (int)(master_citas[i][0]))]        
-
-        if tabla.empty:
-            print("Cita",master_citas[i][0],"no capturada en OTM") 
-        else:
-            tabla['LATE DELIVERY DATE']=tabla['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) 
+    tabla=pandas.DataFrame() # data of table with just matchs of confirmation
+    for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
+        tableTemp=light[(light["CONFIRMATION"]== (master_citas[i][0]))] #here match with the confirmation 
+        #tabla=light[(light["CLIENTE DESTINO"]==clienteDestino[i][0])]  #here match with Cliente Destino to use schedule
+        #print(master_citas[i][0])
+        #if tabla.empty:
+            #print("Cita con confirmación: ",master_citas[i][0],"no capturada en OTM") 
+        #else:
+        ##REMOVE INDENT
+        tableTemp['LATE DELIVERY DATE']=tableTemp['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M:%S')) #Apply time format to late delivery date
             
-            #tablaArr=tabla.to_numpy()            
-            #Generate Hour Day and Day of week from otm 
-            tabla['Hour']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.hour
-            tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+        #tablaArr=tabla.to_numpy()            
+        #Generate Hour Day and Day of week from otm 
+        tableTemp['Hour']=pandas.to_datetime(tableTemp['LATE DELIVERY DATE']).dt.hour
+        tableTemp['Day']=pandas.to_datetime(tableTemp['LATE DELIVERY DATE']).dt.day
+        tableTemp['Day of the week']=pandas.to_datetime(tableTemp['LATE DELIVERY DATE']).dt.day_name()
 
-            #extract hour day and day of week from Walmart
-            wmHour=master_citas[i][1].hour
-            wmDay=master_citas[i][1].day
-            wmDayWeek=master_citas[i][1].strftime("%A")
+        #extract hour day and day of week from Walmart
+        wmHour=master_citas[i][1].hour
+        wmDay=master_citas[i][1].day
+        wmDayWeek=master_citas[i][1].strftime("%A")
 
-            if tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
-                if any(tabla['Hour']>=16):
-                    #generate structure to manage date properly.
-                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                    #print("cambiado")
-                    #print(tabla)
-                #apartir de las 4pm se pone un día antes esto al corroborar ambas.
-            #print(tabla.head(11))
+        tabla.append(tableTemp)
 
-            elif tabla['DESTINO FINAL'].str.contains('CULIACAN').any():
-                if any(tabla['Hour']>=20):
-                    #generate structure to manage date properly.
-                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                    #print("cambiado")
-                    #print(tabla)
+    print(tabla)
+    #Now our table has all the matches by confirmation.
+    clienteDestino=destinoFinal()  
+    print(clienteDestino)
+    tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
+    if tabla.empty:
+        print("Tabla empty")
+    else:
+        for i in range(len(clienteDestino)): #now generate the match with clienteDestino
+            temp=tabla[(tabla["CLIENTE DESTINO"]==clienteDestino[i][0])] #now we'll have our data filtred by cliente destino append that.
+            tablaCD.append(temp)
 
-            elif tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
-                if any(tabla['Hour']>=21):
-                    #generate structure to manage date properly.
-                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                    #print("cambiado")
-                    #print(tabla)
-            else:
-                if any(tabla['Hour']>=18):
-                    #generate structure to manage date properly.
-                    tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-                    tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-                    tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-                    #print("cambiado")
-                    #print(tabla)
+    if tablaCD.empty:
+        print("TablaCD empty")
+    else:
+        for j in range(len(tablaCD)): #Do it for every register in tablaCD
+            hourInPrime=datetime.fromtimestamp(int((tablaCD['Hour'])[j])).strftime('%H:%M')
+            for i in range(len(clienteDestino)): #now validate hour from cliente destino rules
+                if (hourInPrime>=clienteDestino[i][2] and hourInPrime<clienteDestino[i][3]): #cliente destino has not the same lenght of masterCitas
+                    #If the hour it's between the two of them add one to do the match with walmart
+                    tablaCD['LATE DELIVERY DATE']=pandas.to_datetime(tablaCD['LATE DELIVERY DATE'])+timedelta(days=1)
+                    tablaCD['Day']=pandas.to_datetime(tablaCD['LATE DELIVERY DATE']).dt.day
+                    tablaCD['Day of the week']=pandas.to_datetime(tablaCD['LATE DELIVERY DATE']).dt.day_name()
+    
+    #Now that you have updated the table now you have to check the conditions if it is different.
+    print(tabla['CR'])
+    if tablaCD.empty:
+        print("TablaCD empty nothing to compare")
+    else:   
+        for i in range(len(master_citas)):                  
+            if any(tablaCD['LATE DELIVERY DATE'])!=master_citas[i][1]:
+                print("\nCita con confirmacion",mastaster_citas[i][1])
+                print("\nCita con confirmacion",mer_citas[i][0],"inconsistente")
+                print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tablaCD['LATE DELIVERY DATE'],"\n")
+                #now let's updated in OTM
+                #captureOTM(tabla['CR'])  
+    #print(tabla)
+      
+        # for j in range(len(clienteDestino)):
+        #     tabla=light[(light["CLIENTE DESTINO"]==clienteDestino[j][0])]
+        #     if (tabla.empty):
+        #         print("e")
+        #     else:
+        #         print("m")
+
+            # hourInPrime=datetime.fromtimestamp(int((tabla['Hour'])[0])).strftime('%H:%M') #what if there is one or more 
+
+            # if (hourInPrime>=clienteDestino[i][2] and hourInPrime<clienteDestino[i][3]): #cliente destino has not the same lenght of masterCitas
+            #     #If the hour it's between the two of them add one to do the match with walmart
+            #     tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+            #     tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            #     tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+            # else:
+            #     print("Cita con confirmacion",master_citas[i][0],"inconsistente")
+            #     print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
+
+
+
+
+
+
+
+            # #filtrar por cliente destino OM
+            # if tabla['DESTINO FINAL'].str.contains('CULIACAN').any() and tabla['DESTINO FINAL'].str.contains('CHALCO').any() and tabla['DESTINO FINAL'].str.contains('VILLA HERMOSA').any() and tabla['DESTINO FINAL'].str.contains('GUADALAJARA').any() and tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
+            #     if any(tabla['Hour']>=20) :
+            #         #generate structure to manage date properly.
+            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+            #         #print("cambiado")
+            #         #print(tabla)
+            #     #apartir de las 4pm se pone un día antes esto al corroborar ambas.
+            # #print(tabla.head(11))
+            # elif tabla['DESTINO FINAL'].str.contains('CUATITLAN').any() or tabla['DESTINO FINAL'].str.contains('SANTA BARBARA').any():
+            #     if any(tabla['Hour']>=18 and any(tabla['Hour']<24)):
+            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+
+            # elif tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
+            #     if any(tabla['Hour']>=21):
+            #         #generate structure to manage date properly.
+            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+            #         #print("cambiado")
+            #         #print(tabla)
+            # else:
+            #     if any(tabla['Hour']>=18):
+            #         #generate structure to manage date properly.
+            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
+            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
+            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
+            #         #print("cambiado")
+            #         #print(tabla)
                 
-            if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
-                print("\nCita con confirmacion",master_citas[i][0],"inconsistente")
-                print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
-
-    #print(master_citas[0][0])
-    '''for i in range(len(master_citas)):
-        tabla=light[(light["CONFIRMATION"]==master_citas[i][0])]
-        tablaArr=tabla.to_numpy()
-        #print(tabla[['LATE DELIVERY DATE']])
-        if tabla.empty:
-            print("Walmart Appointment not MATCHED ON OTM")
-        else:
-            #adjust date according to sites
-            print(tabla[['DESTINO FINAL']])
-            if tabla[['DESTINO FINAL']]=='Monterrey':
-                print("")
-            if tabla[['DESTINO FINAL']]=='San Martin Obispo':
-                print("")
-            if tabla[['DESTINO FINAL']]=='Culiacan':
-                print("")
-            #then compare both dates
-            if tabla[['LATE DELIVERY DATE']]!=master_citas[i][1]:
-                print("Inconsistencias en fechas")
-            #print(tabla[['LATE DELIVERY DATE']])
-            #if tabla[['LATE DELIVERY DATE']]:
-
-            #destino=tabla[['DESTINO FINAL']].to_numpy
-            #print(destino)
-            #fecha=tabla[['EARLY DELIVERY DATE']]
-            #light['Month']=pandas.DatetimeIndex(fecha['EARLY DELIVERY DATE']).month'''
+            # if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
+            #     print("\nCita con confirmacion",master_citas[i][0],"inconsistente")
+            #     print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
     
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
-def lightReading():
-    data = pandas.read_csv(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv', encoding="ISO-8859-1")
-    #data = pandas.read_csv(r'Examples.csv', encoding="ISO-8859-1")
+def lightReading(Route):
+    data = pandas.read_csv(Route, encoding="ISO-8859-1")
     return data
 
 #-----------------------------------------------------------------------------------------------------
@@ -311,3 +372,4 @@ def readFile(route, typeF):  # ReadFile Method
 
 #-----------------------------------------------------------------------------------------------------
 verificacionCita()
+#captureOTM()
