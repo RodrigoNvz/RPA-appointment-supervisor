@@ -195,7 +195,7 @@ def destinoFinal():
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
-    #extract all apointments on master all citas
+    extract all apointments on master all citas
     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
@@ -207,26 +207,16 @@ def verificacionCita():
                 password='Agosto2020'
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
     
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("n04fw2y","Lenovo49","LENOVO"))
-    
+
     light=lightReading(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv')#Now read prime light
-    #light=lightReading(r'C:\Users\jesushev\Desktop\CLIENTE.csv')
     lightArr=light.to_numpy()
-    #Obtain schedule with csv predefined 
-    
 
     tabla=pandas.DataFrame() # data of table with just matchs of confirmation
+    arrTabla=[]    
     for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
-        tableTemp=light[(light["CONFIRMATION"]== (master_citas[i][0]))] #here match with the confirmation 
-        #tabla=light[(light["CLIENTE DESTINO"]==clienteDestino[i][0])]  #here match with Cliente Destino to use schedule
-        #print(master_citas[i][0])
-        #if tabla.empty:
-            #print("Cita con confirmación: ",master_citas[i][0],"no capturada en OTM") 
-        #else:
-        ##REMOVE INDENT
-        tableTemp['LATE DELIVERY DATE']=tableTemp['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M:%S')) #Apply time format to late delivery date
+        tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[i][0]))] #here match with the confirmation 
+        tableTemp['LATE DELIVERY DATE']=tableTemp['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) #Apply time format to late delivery date
             
-        #tablaArr=tabla.to_numpy()            
         #Generate Hour Day and Day of week from otm 
         tableTemp['Hour']=pandas.to_datetime(tableTemp['LATE DELIVERY DATE']).dt.hour
         tableTemp['Day']=pandas.to_datetime(tableTemp['LATE DELIVERY DATE']).dt.day
@@ -236,21 +226,19 @@ def verificacionCita():
         wmHour=master_citas[i][1].hour
         wmDay=master_citas[i][1].day
         wmDayWeek=master_citas[i][1].strftime("%A")
-
-        tabla.append(tableTemp)
-
-    print(tabla)
+        #print(tableTemp)
+        tabla=tabla.append(tableTemp)
+    
     #Now our table has all the matches by confirmation.
     clienteDestino=destinoFinal()  
-    print(clienteDestino)
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
     if tabla.empty:
         print("Tabla empty")
     else:
         for i in range(len(clienteDestino)): #now generate the match with clienteDestino
             temp=tabla[(tabla["CLIENTE DESTINO"]==clienteDestino[i][0])] #now we'll have our data filtred by cliente destino append that.
-            tablaCD.append(temp)
-
+            tablaCD=tablaCD.append(temp)
+    
     if tablaCD.empty:
         print("TablaCD empty")
     else:
@@ -264,80 +252,18 @@ def verificacionCita():
                     tablaCD['Day of the week']=pandas.to_datetime(tablaCD['LATE DELIVERY DATE']).dt.day_name()
     
     #Now that you have updated the table now you have to check the conditions if it is different.
-    print(tabla['CR'])
     if tablaCD.empty:
         print("TablaCD empty nothing to compare")
-    else:   
-        for i in range(len(master_citas)):                  
-            if any(tablaCD['LATE DELIVERY DATE'])!=master_citas[i][1]:
-                print("\nCita con confirmacion",mastaster_citas[i][1])
-                print("\nCita con confirmacion",mer_citas[i][0],"inconsistente")
-                print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tablaCD['LATE DELIVERY DATE'],"\n")
-                #now let's updated in OTM
+    else:
+        for i in range(len(tablaCD)): #len of tabCD!= master citas, we compare every i register of tablaCD to all the registers of master citas
+            for j in range(len(master_citas)):
+                if tablaCD['LATE DELIVERY DATE'][i]!=master_citas[j][1]:
+                    print("Cita con confirmacion",tablaCD['CONFIRMATION'][i],"inconsistente")
+                    print("Fecha en portal Walmart:",master_citas[j][1],"Fecha capturada en OTM:",tablaCD['LATE DELIVERY DATE'][i])
+                    break
+                    
+                    #now let's updated in OTM
                 #captureOTM(tabla['CR'])  
-    #print(tabla)
-      
-        # for j in range(len(clienteDestino)):
-        #     tabla=light[(light["CLIENTE DESTINO"]==clienteDestino[j][0])]
-        #     if (tabla.empty):
-        #         print("e")
-        #     else:
-        #         print("m")
-
-            # hourInPrime=datetime.fromtimestamp(int((tabla['Hour'])[0])).strftime('%H:%M') #what if there is one or more 
-
-            # if (hourInPrime>=clienteDestino[i][2] and hourInPrime<clienteDestino[i][3]): #cliente destino has not the same lenght of masterCitas
-            #     #If the hour it's between the two of them add one to do the match with walmart
-            #     tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-            #     tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            #     tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-            # else:
-            #     print("Cita con confirmacion",master_citas[i][0],"inconsistente")
-            #     print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
-
-
-
-
-
-
-
-            # #filtrar por cliente destino OM
-            # if tabla['DESTINO FINAL'].str.contains('CULIACAN').any() and tabla['DESTINO FINAL'].str.contains('CHALCO').any() and tabla['DESTINO FINAL'].str.contains('VILLA HERMOSA').any() and tabla['DESTINO FINAL'].str.contains('GUADALAJARA').any() and tabla['DESTINO FINAL'].str.contains('MONTERREY').any():
-            #     if any(tabla['Hour']>=20) :
-            #         #generate structure to manage date properly.
-            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-            #         #print("cambiado")
-            #         #print(tabla)
-            #     #apartir de las 4pm se pone un día antes esto al corroborar ambas.
-            # #print(tabla.head(11))
-            # elif tabla['DESTINO FINAL'].str.contains('CUATITLAN').any() or tabla['DESTINO FINAL'].str.contains('SANTA BARBARA').any():
-            #     if any(tabla['Hour']>=18 and any(tabla['Hour']<24)):
-            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-
-            # elif tabla['DESTINO FINAL'].str.contains('SAN MARTIN OBISPO').any():
-            #     if any(tabla['Hour']>=21):
-            #         #generate structure to manage date properly.
-            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-            #         #print("cambiado")
-            #         #print(tabla)
-            # else:
-            #     if any(tabla['Hour']>=18):
-            #         #generate structure to manage date properly.
-            #         tabla['LATE DELIVERY DATE']=pandas.to_datetime(tabla['LATE DELIVERY DATE'])+timedelta(days=1)
-            #         tabla['Day']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day
-            #         tabla['Day of the week']=pandas.to_datetime(tabla['LATE DELIVERY DATE']).dt.day_name()
-            #         #print("cambiado")
-            #         #print(tabla)
-                
-            # if any(tabla['LATE DELIVERY DATE'])!=master_citas[i][1]:
-            #     print("\nCita con confirmacion",master_citas[i][0],"inconsistente")
-            #     print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tabla['LATE DELIVERY DATE'],"\n")
     
 
 #-----------------------------------------------------------------------------------------------------
