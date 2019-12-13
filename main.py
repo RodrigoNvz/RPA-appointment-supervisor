@@ -57,7 +57,6 @@ async def wm_appointment_portal(user,passwd,account_name):
     #print("LENGTH", tabla)
     
     #Use try to manage when there are no near appointments 
-
     noAppointFound= await testpage.querySelector(entregasEncontradas)
     noAppointments=await testpage.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
     if noAppointments=='0':
@@ -76,8 +75,7 @@ async def wm_appointment_portal(user,passwd,account_name):
             master_citas.append([no_entrega, clean_cita])
         
         print("Succesful",account_name,"extraction")
-        # for i in range(len(master_citas)):
-        #   print("VALUE: ",master_citas[i])
+
         await page.waitFor(5000)
         try:
             await browser.close()
@@ -195,7 +193,7 @@ def destinoFinal():
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
-    extract all apointments on master all citas
+    #extract all apointments on master all citas
     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
@@ -207,14 +205,16 @@ def verificacionCita():
                 password='Agosto2020'
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
     
-
     light=lightReading(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv')#Now read prime light
     lightArr=light.to_numpy()
+    
+    print("Comparing Portal-OTM appointments...")
 
-    tabla=pandas.DataFrame() # data of table with just matchs of confirmation
+    tabla=pandas.DataFrame() # define table with just match of confirmation
     arrTabla=[]    
     for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
         tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[i][0]))] #here match with the confirmation 
+
         tableTemp['LATE DELIVERY DATE']=tableTemp['LATE DELIVERY DATE'].apply(lambda x: datetime.strptime(x,'%d/%m/%Y %H:%M')) #Apply time format to late delivery date
             
         #Generate Hour Day and Day of week from otm 
@@ -226,24 +226,24 @@ def verificacionCita():
         wmHour=master_citas[i][1].hour
         wmDay=master_citas[i][1].day
         wmDayWeek=master_citas[i][1].strftime("%A")
-        #print(tableTemp)
         tabla=tabla.append(tableTemp)
     
     #Now our table has all the matches by confirmation.
-    clienteDestino=destinoFinal()  
+    clienteDestino=destinoFinal() 
+
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
     if tabla.empty:
-        print("Tabla empty")
+        print("None Appointments found on tabla")
     else:
         for i in range(len(clienteDestino)): #now generate the match with clienteDestino
             temp=tabla[(tabla["CLIENTE DESTINO"]==clienteDestino[i][0])] #now we'll have our data filtred by cliente destino append that.
             tablaCD=tablaCD.append(temp)
     
     if tablaCD.empty:
-        print("TablaCD empty")
+        print("None Appointments found on tablaCD")
     else:
         for j in range(len(tablaCD)): #Do it for every register in tablaCD
-            hourInPrime=datetime.fromtimestamp(int((tablaCD['Hour'])[j])).strftime('%H:%M')
+            hourInPrime=datetime.fromtimestamp(int((tablaCD['Hour'])[j])).strftime('%H:%M') # extract and format tablaCD['HOUR'] to be used
             for i in range(len(clienteDestino)): #now validate hour from cliente destino rules
                 if (hourInPrime>=clienteDestino[i][2] and hourInPrime<clienteDestino[i][3]): #cliente destino has not the same lenght of masterCitas
                     #If the hour it's between the two of them add one to do the match with walmart
@@ -252,20 +252,22 @@ def verificacionCita():
                     tablaCD['Day of the week']=pandas.to_datetime(tablaCD['LATE DELIVERY DATE']).dt.day_name()
     
     #Now that you have updated the table now you have to check the conditions if it is different.
-    if tablaCD.empty:
-        print("TablaCD empty nothing to compare")
-    else:
-        for i in range(len(tablaCD)): #len of tabCD!= master citas, we compare every i register of tablaCD to all the registers of master citas
-            for j in range(len(master_citas)):
-                if tablaCD['LATE DELIVERY DATE'][i]!=master_citas[j][1]:
-                    print("Cita con confirmacion",tablaCD['CONFIRMATION'][i],"inconsistente")
-                    print("Fecha en portal Walmart:",master_citas[j][1],"Fecha capturada en OTM:",tablaCD['LATE DELIVERY DATE'][i])
-                    break
-                    
-                    #now let's updated in OTM
-                #captureOTM(tabla['CR'])  
-    
 
+    arrCR=[] 
+    arrLate=[]
+    for i in range(len(master_citas)):
+        for j in range(len(tablaCD)):
+            if(tablaCD['CONFIRMATION'][j]==(int)(master_citas[i][0])):
+                if(tablaCD['LATE DELIVERY DATE'][j] !=(master_citas[i][1])):
+                    print("Cita con confirmacion",master_citas[i][0],"inconsistente")
+                    print("Fecha en portal Walmart:",master_citas[i][1],"Fecha capturada en OTM:",tablaCD['LATE DELIVERY DATE'][j])
+                    arrCR.append(str(tablaCD['CR'][j]))
+                    arrLate.append(str(master_citas[i][1]))
+    print("Finished comparing")
+    asyncio.get_event_loop().run_until_complete(captureOTM(arrCR,arrLate))  #GO and capture on OTM
+    print("Finished OTM update")
+    
+    
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading(Route):
@@ -298,4 +300,3 @@ def readFile(route, typeF):  # ReadFile Method
 
 #-----------------------------------------------------------------------------------------------------
 verificacionCita()
-#captureOTM()
