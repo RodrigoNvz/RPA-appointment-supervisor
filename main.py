@@ -86,7 +86,7 @@ async def wm_appointment_portal(user,passwd,account_name):
 
 #-----------------------------------------------------------------------------------------------------
 #Validate appointments in OTM 
-async def captureOTM(arrCR):
+async def captureOTM(arrCR,arrLate):
     # try:
     # browser = await launch({'args': ['--disable-dev-shm-usage']})
     browser = await launch(headless=False)  # headless false means open the browser in the operation
@@ -156,7 +156,7 @@ async def captureOTM(arrCR):
         # else:
         await frame.type("[name='order_release/ship_with_group']",arrCR[i])
         #await frame.type("[name='order_release/early_delivery_date']",firstDate)
-        await frame.type("[name='order_release/late_delivery_date']","lateDate")
+        await frame.type("[name='order_release/late_delivery_date']",arrLate[i])
         await frame.click("[name='order_release/delivery_is_appt']")
         await frame.waitFor(1000)
         #print("PASSED")
@@ -164,12 +164,6 @@ async def captureOTM(arrCR):
     '''return returned
     await page.waitFor(3000)
     await browser.close()'''
-
-# except:
-#     await browser.close()
-#     print("FAILED----")
-#     print("RETRYING----")
-#     await captureOTM()
 
 
 def destinoFinal():
@@ -267,7 +261,7 @@ def verificacionCita():
     asyncio.get_event_loop().run_until_complete(captureOTM(arrCR,arrLate))  #GO and capture on OTM
     print("Finished OTM update")
     
-    
+
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
 def lightReading(Route):
@@ -279,8 +273,8 @@ def lightReading(Route):
 def readFile(route, typeF):  # ReadFile Method
     if typeF == "txt":
         f = open(route, "r")
-        usern = f.readline()
-        passwd = f.readline()
+        usern = str(f.readline().strip()) #strip removes /t
+        passwd = str(f.readline().strip())
         f.close()
         data = [usern, passwd]
         return data
