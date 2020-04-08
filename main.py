@@ -3,25 +3,38 @@
         Heriberto Vasquez Sanchez
         Jose Rodrigo Narvaez Berlanga'''
 
-import asyncio, os, time, pyppeteer, pandas, csv,numpy,calendar
+import asyncio, os, time, pyppeteer, pandas, csv,numpy,calendar,schedule, datetime,shutil
 from pyppeteer import launch
 from datetime import datetime,timedelta
+from subprocess import STDOUT, check_output
 
-master_citas = [] #master all appointments
-master_report = [] #master all reports by Control Vehicular
+master_citas = [] # all appointments
+#master_report = [] #all reports by Control Vehicular
+
+def launchQlik(route, name, retries = 1):
+    now = datetime.now()
+    cmd = r'"C:\Program Files\QlikView\Qv.exe" /r ' + route
+    for i in range(retries):
+        try:
+            output = check_output(cmd, stderr=STDOUT, timeout = 1200)
+            print('Generado',now.strftime("%Y-%m-%d %H:%M"),': ', name)
+            return 1
+        except:
+            print('Timeout',now.strftime("%Y-%m-%d %H:%M"),': ', name)
+    return 0 
 
 #Walmart appointment extraction method
 async def wm_appointment_portal(user,passwd,account_name):
-
-    browser = await launch(headless=False)
+    #browser = await launch(headless=False)
+    browser = await launch()
     strusername = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(1) > span > span > input"
     strpass = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(2) > span > span > input"
     strbtn = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > button"
-    entregasEncontradas="#mc > tbody > tr:nth-child(2) > td.contentPanel > table > tbody > tr:nth-child(4) > td > form > table > tbody > tr > td > table > tbody > tr.contentBodyRow > td.contentBody > table.formTable > tbody > tr:nth-child(2) > td.valueTd"
+    entregasEncontradas="#mc >  tbody > tr:nth-child(2) > td.contentPanel > table > tbody > tr:nth-child(4) > td > form > table > tbody > tr > td > table > tbody > tr.contentBodyRow > td.contentBody > table.formTable > tbody > tr:nth-child(2) > td.valueTd"
 
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
-    page.setDefaultNavigationTimeout(30000) # maybe 60000
+    page.setDefaultNavigationTimeout(30000) 
     await page.goto("https://retaillink.login.wal-mart.com/?ServerType=IIS1&CTAuthMode=BASIC&language=en&utm_source=retaillink&utm_medium=redirect&utm_campaign=FalconRelease&CT_ORIG_URL=/&ct_orig_uri=/")
     await page.waitFor(strusername)
 
@@ -75,7 +88,6 @@ async def wm_appointment_portal(user,passwd,account_name):
             master_citas.append([no_entrega, clean_cita])
         
         print("Succesful",account_name,"extraction")
-
         await page.waitFor(5000)
         try:
             await browser.close()
@@ -83,13 +95,116 @@ async def wm_appointment_portal(user,passwd,account_name):
             print("Error al cerrar, same as always")
         return master_citas
 
+#-----------------------------------------------------------------------------------------------------
+#Freko-portal
+async def fsk_appointment_portal(user,passwd,account_name):
+    browser = await launch(headless=False)
+    strusr="body > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(4) > form > table > tbody > tr:nth-child(2) > td:nth-child(2) > input"
+    strpass="body > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(4) > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > input"
+    enterbtn="body > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(4) > form > table > tbody > tr:nth-child(4) > td > input[type=IMAGE]"
+    citasProgramadas="miTabla1 > tbody > tr:nth-child(4) > td.menuSub > a"
+    
+
+    #citasprogramadas="body > table > tbody > miTabla1 > tbody > tr:nth-child(4) > td.menuSub > a"
+    page = await browser.newPage()
+    await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
+    page.setDefaultNavigationTimeout(30000) # maybe 60000
+    await page.goto("http://www.provecomer.com.mx/htmlProvecomer/provecomer.html")
+    await page.waitFor(strusr)
+    await page.waitFor(strpass)
+
+    username = await page.querySelector(strusr)
+    password = await page.querySelector(strpass)
+
+    print("Filling form...")
+    await username.type(user)
+    await password.type(passwd)
+    await page.click(enterbtn) 
+    # try: 
+    #     await page.waitForNavigation()
+    #     print("Succesful login...Navigating")
+    # except:
+    #     print("Failed in",account_name,"login.")
+    #     await browser.close()
+    #     return 0
+    txt=await page.content()
+    frames=page.frames
+    frame01=frames[2] #this is the one for miTabla1
+    
+    #frame02=frames[4]
+    #txt2=await frame01.content() #Uncomment soon
+    #print(txt2)
+
+    await frame01.waitFor("[id='miTabla1']")
+    await frame01.click("[id='miTabla1']")
+
+    #frametest=await frames[1].content()
+    #print(frametest)
+    #awaited=await frames[0].childFrames[0].content()
+
+    
+    citasProg=await frame01.waitForXPath('//*[@id="miTabla1"]/tbody/tr[4]/td[2]/a')
+    await citasProg.click()
+    ref='GeneraReporteFrm > table > tbody > tr:nth-child(12) > td:nth-child(8)'
+    #Now extract appointments
+    frame02=frames[3]
+    txt3= await frame02.content()
+
+    xtabla = await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody')
+    # Extracting table size
+    tabla = await frame02.evaluate("(xtabla) => xtabla.children", xtabla)
+    #print("LENGTH", tabla)
+
+
+
+    #ref1=await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[12]/td[8]')
+    #refF=await frame02.evaluate("(ref1) => ref1.innerText", ref1)
+    #print(refF)
+
+    #print(len(tabla))
+    # if noAppointments=='0':
+    #     print("NO",account_name,"APPOINTMENTS IN PORTAL")
+    #     await page.waitFor(5000)
+    #     await browser.close()
+    # else:
+    master_temporal=[]
+    #make the initial range dinamic, make it start when it does not find it.
+    for i in range(1, len(tabla) + 1):
+        index = str(i)
+        try:
+            x1 = await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[{}]/td[8]'.format(index))
+            refCita = await frame02.evaluate("(x1) => x1.innerText", x1)
+            x2 = await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[{}]/td[13]'.format(index))
+            refFecha= await frame02.evaluate("(x2) => x2.innerText",x2)            
+            #master_temporal.append([refCita,refFecha])
+            if(refCita !='Num. Ref.'):
+            #clean_cita = datetime.strptime(refFecha,'%m/%d/%y %I:%M %p')
+                master_temporal.append([refCita,refFecha])
+                #master_citas.append()
+        except:
+            print('xpath does not exists')
+        
+        # if x1!=' ':
+        #     refI= await frame02.evaluate("(x1) => x1.innerText", x1)
+        #     #x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
+        #     #cita = await testpage.evaluate("(x2) => x2.innerText", x2)
+        #     # Conversión a datetime
+        #     #clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
+        #     print(refI)
+        #     master_temporal.append(refI)
+    #await
+    print(master_temporal)
+    
+    await page.waitFor(6000)
+
 
 #-----------------------------------------------------------------------------------------------------
 #Validate appointments in OTM 
 async def captureOTM(arrCR,arrLate):
     # try:
     # browser = await launch({'args': ['--disable-dev-shm-usage']})
-    browser = await launch(headless=False)  # headless false means open the browser in the operation
+    #browser = await launch(headless=False)  # headless false means open the browser in the operation
+    browser = await launch()
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
     page.setDefaultNavigationTimeout(60000)
@@ -165,7 +280,6 @@ async def captureOTM(arrCR,arrLate):
     await page.waitFor(3000)
     await browser.close()'''
 
-
 def destinoFinal():
     masterClienteDestino=[]
     with open(r'C:\Users\jesushev\Desktop\CLIENTE DESTINO.csv') as credentials:
@@ -187,6 +301,12 @@ def destinoFinal():
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
+    #Update Prime light
+    print("Cargando Qlikview...")
+    launchQlik(r'C:\Users\jesushev\Documents\QV\prime_light.qvw', 'Prime Light', 3)
+    print("Qlikview cargado.")
+    print("Generacion exitosa.")
+
     #extract all apointments on master all citas
     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
@@ -197,10 +317,15 @@ def verificacionCita():
             password = row[2]
             if account_name=='JDE COFFE':
                 password='Agosto2020'
+
+            #if account_name!='SONY':
             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
-    
+   
+    for i in range(len(master_citas)):
+        print(master_citas[i][0])
+
     light=lightReading(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\Prime_Light.csv')#Now read prime light
-    lightArr=light.to_numpy()
+    #lightArr=light.to_numpy()
     
     print("Comparing Portal-OTM appointments...")
 
@@ -220,14 +345,16 @@ def verificacionCita():
         wmHour=master_citas[i][1].hour
         wmDay=master_citas[i][1].day
         wmDayWeek=master_citas[i][1].strftime("%A")
-        tabla=tabla.append(tableTemp)
+        tabla.append(tableTemp)
+
+        #print(tabla)
     
     #Now our table has all the matches by confirmation.
     clienteDestino=destinoFinal() 
 
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
     if tabla.empty:
-        print("None Appointments found on tabla")
+        print("None Appointments found on tabla ")
     else:
         for i in range(len(clienteDestino)): #now generate the match with clienteDestino
             temp=tabla[(tabla["CLIENTE DESTINO"]==clienteDestino[i][0])] #now we'll have our data filtred by cliente destino append that.
@@ -258,8 +385,8 @@ def verificacionCita():
                     arrCR.append(str(tablaCD['CR'][j]))
                     arrLate.append(str(master_citas[i][1]))
     print("Finished comparing")
-    asyncio.get_event_loop().run_until_complete(captureOTM(arrCR,arrLate))  #GO and capture on OTM
-    print("Finished OTM update")
+    #asyncio.get_event_loop().run_until_complete(captureOTM(arrCR,arrLate))  #GO and capture on OTM
+    #print("Finished OTM update")
     
 
 #-----------------------------------------------------------------------------------------------------
@@ -293,4 +420,41 @@ def readFile(route, typeF):  # ReadFile Method
         return data
 
 #-----------------------------------------------------------------------------------------------------
+
 verificacionCita()
+#asyncio.get_event_loop().run_until_complete(fsk_appointment_portal('10101071','DHL900821M4','Test'))
+
+
+##schedule.every().day.at("00:35").do(verificacionCita)
+##schedule.every().day.at("01:35").do(verificacionCita)
+##schedule.every().day.at("02:35").do(verificacionCita)
+##schedule.every().day.at("03:35").do(verificacionCita)
+##schedule.every().day.at("04:35").do(verificacionCita)
+##schedule.every().day.at("05:35").do(verificacionCita)
+##schedule.every().day.at("06:35").do(verificacionCita)
+##schedule.every().day.at("07:35").do(verificacionCita)
+##schedule.every().day.at("08:35").do(verificacionCita)
+##schedule.every().day.at("09:35").do(verificacionCita)
+##schedule.every().day.at("10:35").do(verificacionCita)
+##schedule.every().day.at("11:35").do(verificacionCita)
+##schedule.every().day.at("12:35").do(verificacionCita)
+##schedule.every().day.at("13:35").do(verificacionCita)
+##schedule.every().day.at("14:35").do(verificacionCita)
+##schedule.every().day.at("15:35").do(verificacionCita)
+##schedule.every().day.at("16:35").do(verificacionCita)
+##schedule.every().day.at("17:35").do(verificacionCita)
+##schedule.every().day.at("18:35").do(verificacionCita)
+##schedule.every().day.at("19:35").do(verificacionCita)
+##schedule.every().day.at("20:35").do(verificacionCita)
+##schedule.every().day.at("21:35").do(verificacionCita)
+##schedule.every().day.at("22:35").do(verificacionCita)
+##schedule.every().day.at("23:35").do(verificacionCita)
+
+#verificacionCita()
+
+#while (True):
+
+#    schedule.run_pending()
+
+#    time.sleep(1)
+
