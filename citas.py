@@ -409,7 +409,7 @@ def verificacionCita():
         #print("GETTING IN")
         #body = readHtml("citas.html")
         #NOTES, BODY SHOULD BY CALIBRI FONT SIZE: BODY: 11 SUBTITLES: 12 AND TITLE: 18
-        sendEmail("jesus.vasquezs@dhl.com","<h1>Inconsistencias</h1>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
+        sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
