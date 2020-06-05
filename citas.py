@@ -286,8 +286,8 @@ async def captureOTM(arrCR,arrLate):
 
 def destinoFinal():
     masterClienteDestino=[]
-    with open(r'E:\Desktop\DHL\Citas\CLIENTE DESTINO.csv') as credentials:
-    #with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
+    #with open(r'E:\Desktop\DHL\Citas\CLIENTE DESTINO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers        
         for row in gen_reader:
@@ -312,7 +312,7 @@ def sendEmail(address,body,subject):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0) 
     mail.To = address
-    mail.VotingOptions = "Accept;Decline"
+    #mail.VotingOptions = "Accept;Decline"
     mail.Subject = subject
     #body3 = txttohtml("template.html")
     #arrBorrar = ["Hello","World"]
@@ -330,14 +330,15 @@ def sendEmail(address,body,subject):
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
     print("Cargando Qlikview...")
-    launchQlik(r'E:\Documents\QV\citas.qvw', 'Prime Light', 3)
-
+    #launchQlik(r'E:\Documents\QV\citas.qvw', 'Prime Light', 3)	
+    launchQlik(r'C:\Users\jesushev\Documents\QV\citas.qvw', 'Prime Light', 3)
     #extract all apointments on master all citas
     now = datetime.now()
     #retries = 5
     enviarCorreo = "No"
     #for i in range(retries):        
-    with open(r'E:\Desktop\DHL\USUARIO.csv') as credentials:
+    #with open(r'E:\Desktop\DHL\USUARIO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -356,7 +357,8 @@ def verificacionCita():
     #for i in range(len(master_citas)):
     #    print("Cita ",i,master_citas[i])
 
-    light=lightReading(r'E:\Documents\Launch Scripts\Prime_Light.csv')#Now read prime light
+    #light=lightReading(r'E:\Documents\Launch Scripts\Prime_Light.csv')#Now read prime light
+    light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
     #lightArr=light.to_numpy()
     #print(light["Confirmation"])
     print("Comparing Portal-OTM appointments...")
@@ -365,12 +367,12 @@ def verificacionCita():
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
 
 
-    
-
     #reportFile = open("report.txt","w+")
     
     sinLateDelivery = "<br><h3 style='color:black;'>CITAS SIN LATE DELIVERY DATE</h3>"
     lateDeliveryDiferente = "<h3 style='color:black;'>CITAS CON LATE DELIVERY DIFERENTE</h3>"
+    registerData=[]
+    temporalList=[]
     for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
         tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[i][0]))]
         if (len(tableTemp)==1):            
@@ -378,6 +380,7 @@ def verificacionCita():
             #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
             if (not tableTemp['LATE DELIVERY DATE'].values[0] == str(master_citas[i][1]) ):
                 #print("Dates different")
+                #registerData.append(tableTemp['SHIPMENT_XID'].values[0],)
                 lateDeliveryDiferente +="SHIPMENT_XID: {0} <br> DESTINO FINAL: {1} <br>LATE DELIVERY DATE EN SISTEMA: {2} <br> \
                     LATE DELIVERY DATE EN PORTAL: {3} <br>TIPO VIAJE: {4} <br> CUENTA: {5} \
                         <br> CONFIRMACION: {6}<br><br> ".format(tableTemp['SHIPMENT_XID'].values[0],tableTemp['DESTINO FINAL'].values[0],tableTemp['LATE DELIVERY DATE'].values[0],master_citas[i][1],tableTemp['TIPO VIAJE'].values[0],tableTemp['CUENTA'].values[0],tableTemp['CONFIRMATION'].values[0])          
@@ -391,6 +394,10 @@ def verificacionCita():
             #print("LEN > 1")
             for j in range(len(tableTemp)-1):
                 if(not tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
+                    temporalList.append(tableTemp['SHIPMENT_XID'].values[j])
+                    temporalList.append(tableTemp['CUENTA'].values[j])
+                    temporalList.append(tableTemp['CONFIRMATION'].values[j])
+                    registerData.append(temporalList)
                     sinLateDelivery +="SHIPMENT_XID: {0} CUENTA: {1} CONFIRMACION:\
                          {2}<br><br>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
 
@@ -403,8 +410,11 @@ def verificacionCita():
                             {2} <br>LATE DELIVERY DATE EN PORTAL: {3} <br>TIPO VIAJE: {4} <br>CUENTA: {5} <br>CONFIRMACION: {6}<br><br>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['DESTINO FINAL'].values[j],tableTemp['LATE DELIVERY DATE'].values[j],master_citas[i][1],tableTemp['TIPO VIAJE'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])         
                     #else:
                         #print("Everything in order, dates equal")
-        enviarCorreo="Si"
-            
+        enviarCorreo="Si"  
+
+    res = []
+    [res.append(x)for x in registerData if x not in res]    
+    print(res)       
     if (not sinLateDelivery == "" and enviarCorreo == "Si"):
         #print("GETTING IN")
         #body = readHtml("citas.html")
