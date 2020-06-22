@@ -312,7 +312,7 @@ def sendEmail(address,body,subject):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0) 
     mail.To = address
-    mail.VotingOptions = "Accept;Decline"
+    #mail.VotingOptions = "Accept;Decline"
     mail.Subject = subject
     #body3 = txttohtml("template.html")
     #arrBorrar = ["Hello","World"]
@@ -324,7 +324,7 @@ def sendEmail(address,body,subject):
     #mail.ExpiryTime = a
     #mail.ReminderTime = a
     mail.Send()
-    print("Finished Succesfully")
+    #print("Finished Succesfully")
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
@@ -405,11 +405,11 @@ def verificacionCita():
                         #print("Everything in order, dates equal")
         enviarCorreo="Si"
             
-    if (not sinLateDelivery == "" and enviarCorreo == "Si"):
+    #if (not sinLateDelivery == "" and enviarCorreo == "Si"):
         #print("GETTING IN")
         #body = readHtml("citas.html")
         #NOTES, BODY SHOULD BY CALIBRI FONT SIZE: BODY: 11 SUBTITLES: 12 AND TITLE: 18
-        sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
+    #    sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
