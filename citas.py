@@ -13,8 +13,10 @@ from subprocess import STDOUT, check_output
 master_citas = [] # all appointments
 #master_report = [] #all reports by Control Vehicular
 outlook = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
-account= win32.Dispatch("Outlook.Application").Session.Accounts
+#account= win32.Dispatch("Outlook.Application").Session.Accounts
+expiredAccounts = []
 
+#print(outlook)
 def launchQlik(route, name, retries = 1):
     now = datetime.now()
     cmd = r'"C:\Program Files\QlikView\Qv.exe" /r ' + route
@@ -54,6 +56,7 @@ async def wm_appointment_portal(user,passwd,account_name):
         #print("Succesful login...Navigating")
     except:
         print("Failed in",account_name,"login.")
+        expiredAccounts.append(account_name)
         await browser.close()
         return 0
     
@@ -286,8 +289,8 @@ async def captureOTM(arrCR,arrLate):
 
 def destinoFinal():
     masterClienteDestino=[]
-    with open(r'E:\Desktop\DHL\Citas\CLIENTE DESTINO.csv') as credentials:
-    #with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
+    #with open(r'E:\Desktop\DHL\Citas\CLIENTE DESTINO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers        
         for row in gen_reader:
@@ -317,6 +320,8 @@ def sendEmail(address,body,subject):
     #body3 = txttohtml("template.html")
     #arrBorrar = ["Hello","World"]
     mail.HTMLBody = body
+    images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
+    mail.Attachments.Add(Source= images_path+"DHL.png")
     #body #this field is optional
     #mail.Attachments("DHL.png")
     #a = "Email to:",address,"sent at:",datetime.now
@@ -330,14 +335,16 @@ def sendEmail(address,body,subject):
 # Here we do the verification between the walmart site and OTM, consolidating data
 def verificacionCita():
     print("Cargando Qlikview...")
-    launchQlik(r'E:\Documents\QV\citas.qvw', 'Prime Light', 3)
+    launchQlik(r'C:\Users\jesushev\Documents\QV\citas.qvw', 'Prime Light', 3)
 
     #extract all apointments on master all citas
     now = datetime.now()
     #retries = 5
     enviarCorreo = "No"
+    anySinLateDelivery = 'No'
+    anyLateDeliveryDiferente = 'No'
     #for i in range(retries):        
-    with open(r'E:\Desktop\DHL\USUARIO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -356,7 +363,7 @@ def verificacionCita():
     #for i in range(len(master_citas)):
     #    print("Cita ",i,master_citas[i])
 
-    light=lightReading(r'E:\Documents\Launch Scripts\Prime_Light.csv')#Now read prime light
+    light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
     #lightArr=light.to_numpy()
     #print(light["Confirmation"])
     print("Comparing Portal-OTM appointments...")
@@ -365,51 +372,71 @@ def verificacionCita():
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
 
 
+    body = ''
+    body +="<img src='DHL.png' width='287' height='82'>"
+    if len(expiredAccounts) > 0:
+        body += "<p style='font-family:sans-serif;'><b>Usuarios desactualizados</b></p>"
+        for i in range (len(expiredAccounts)):
+            body += "<p style='font-family:sans-serif;'>{0}</p>".format(expiredAccounts[i])
+        body += "<p style='font-family:sans-serif;'>Favor de actualizar el archivo  \\Mxmex1-fipr01\\public$\\Nave 1\\LPC\\ApptUsers\\Usuarios.csv con las cuentas correspondientes.</p>"
+        enviarCorreo="Si"
     
-
-    #reportFile = open("report.txt","w+")
     
-    sinLateDelivery = "<br><h3 style='color:black;'>CITAS SIN LATE DELIVERY DATE</h3>"
-    lateDeliveryDiferente = "<h3 style='color:black;'>CITAS CON LATE DELIVERY DIFERENTE</h3>"
+    shipmentEmail = []
+    sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date</b></p>"
+    lateDeliveryDiferente = "<p style='font-family:sans-serif;'><b>Citas con Late Delivery Diferente</b></p>"
     for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
         tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[i][0]))]
-        if (len(tableTemp)==1):            
-            tableTemp['LATE DELIVERY DATE']= str(datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%d/%m/%Y %H:%M:%S %p'))
-            #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
-            if (not tableTemp['LATE DELIVERY DATE'].values[0] == str(master_citas[i][1]) ):
-                #print("Dates different")
-                lateDeliveryDiferente +="SHIPMENT_XID: {0} <br> DESTINO FINAL: {1} <br>LATE DELIVERY DATE EN SISTEMA: {2} <br> \
-                    LATE DELIVERY DATE EN PORTAL: {3} <br>TIPO VIAJE: {4} <br> CUENTA: {5} \
-                        <br> CONFIRMACION: {6}<br><br> ".format(tableTemp['SHIPMENT_XID'].values[0],tableTemp['DESTINO FINAL'].values[0],tableTemp['LATE DELIVERY DATE'].values[0],master_citas[i][1],tableTemp['TIPO VIAJE'].values[0],tableTemp['CUENTA'].values[0],tableTemp['CONFIRMATION'].values[0])          
-            #else:
-            #    print("Everything in order, dates equal")
-            #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
-            # print( tableTemp['LATE DELIVERY DATE'].values[0])
-            # print(master_citas[i][1])
+        if (len(tableTemp)==1):   
+            if (not (tableTemp['SHIPMENT_XID'].values[0] in shipmentEmail)):       
+                tableTemp['LATE DELIVERY DATE']= str(datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%d/%m/%Y %H:%M:%S %p'))
+                #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
+                if (not tableTemp['LATE DELIVERY DATE'].values[0] == str(master_citas[i][1]) ):
+                    #print("Dates different")
+                    lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br> Destino Final: {1} <br>Late Delivery Date en OTM: {2} <br> \
+                        Late Delivery Date en Portal Walmart: {3} <br>Tipo Viaje: {4} <br> Cuenta: {5} \
+                            <br> Confirmacion: {6}<br><br></p> ".format(tableTemp['SHIPMENT_XID'].values[0],tableTemp['DESTINO FINAL'].values[0],tableTemp['LATE DELIVERY DATE'].values[0],master_citas[i][1],tableTemp['TIPO VIAJE'].values[0],tableTemp['CUENTA'].values[0],tableTemp['CONFIRMATION'].values[0])          
+                    #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
+                    # print( tableTemp['LATE DELIVERY DATE'].values[0])
+                    anyLateDeliveryDiferente = 'Si'
+                    # print(master_citas[i][1])
+                    shipmentEmail.append(tableTemp['SHIPMENT_XID'].values[0])
+                    enviarCorreo="Si"
         elif(len(tableTemp)>1):
             #tableTemp['LATE DELIVERY DATE']= str(datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%d/%m/%Y %H:%M:%S %p'))
             #print("LEN > 1")
             for j in range(len(tableTemp)-1):
-                if(not tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
-                    sinLateDelivery +="SHIPMENT_XID: {0} CUENTA: {1} CONFIRMACION:\
-                         {2}<br><br>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
+                if (not (tableTemp['SHIPMENT_XID'].values[j] in shipmentEmail)):
+                    if(not tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
+                        sinLateDelivery +="<p style='font-family:sans-serif;'>Shipment_XID: {0} Cuenta: {1} Confirmacion:\
+                            {2}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
+                        anySinLateDelivery = 'Si'
+                        #print(tableTemp['LATE DELIVERY DATE'].values[j])
+                        shipmentEmail.append(tableTemp['SHIPMENT_XID'].values[j])
+                        enviarCorreo="Si"
+                    else:
+                        if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
+                            #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])-timedelta(days=1))
+                            #print("Dates different")
+                            lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br>Destino Final: {1} <br>Late Delivery Date en OTM: \
+                                {2} <br>Late Delivery Date en Portal Walmart: {3} <br>Tipo Viaje: {4} <br>Cuenta: {5} <br>Confirmacion: {6}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['DESTINO FINAL'].values[j],tableTemp['LATE DELIVERY DATE'].values[j],master_citas[i][1],tableTemp['TIPO VIAJE'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])         
+                            anyLateDeliveryDiferente = 'Si'     
+                            shipmentEmail.append(tableTemp['SHIPMENT_XID'].values[j])  
+                            enviarCorreo="Si"
+        
+    if anyLateDeliveryDiferente == 'Si':
+        body += lateDeliveryDiferente
+    if anySinLateDelivery == 'Si':
+        body += sinLateDelivery
+    body += "<br><p style='font-family:sans-serif;'>Validar estatus y capturar la información en OTM a la brevedad. ¡Muchas Gracias!</p>"
 
-                    #print(tableTemp['LATE DELIVERY DATE'].values[j])
-                else:
-                    if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
-                        #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])-timedelta(days=1))
-                        #print("Dates different")
-                        lateDeliveryDiferente +="SHIPMENT_XID: {0} <br>DESTINO FINAL: {1} <br>LATE DELIVERY DATE EN SISTEMA: \
-                            {2} <br>LATE DELIVERY DATE EN PORTAL: {3} <br>TIPO VIAJE: {4} <br>CUENTA: {5} <br>CONFIRMACION: {6}<br><br>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['DESTINO FINAL'].values[j],tableTemp['LATE DELIVERY DATE'].values[j],master_citas[i][1],tableTemp['TIPO VIAJE'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])         
-                    #else:
-                        #print("Everything in order, dates equal")
-        enviarCorreo="Si"
-            
-    #if (not sinLateDelivery == "" and enviarCorreo == "Si"):
+    if (enviarCorreo == "Si"):
         #print("GETTING IN")
         #body = readHtml("citas.html")
         #NOTES, BODY SHOULD BY CALIBRI FONT SIZE: BODY: 11 SUBTITLES: 12 AND TITLE: 18
-    #    sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
+        #if (len(expiredAccounts)>0):
+            #sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
+        sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com;Joel.AlonsoContreras@dhl.com;Rodrigo.Narvaez@dhl.com",body,"Reporte Inconsistencias")
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
@@ -443,37 +470,20 @@ def readFile(route, typeF):  # ReadFile Method
 
 #-----------------------------------------------------------------------------------------------------
 
-verificacionCita()
 #asyncio.get_event_loop().run_until_complete(fsk_appointment_portal('10101071','DHL900821M4','Test'))
 
 
-##schedule.every().day.at("00:35").do(verificacionCita)
-##schedule.every().day.at("01:35").do(verificacionCita)
-##schedule.every().day.at("02:35").do(verificacionCita)
-##schedule.every().day.at("03:35").do(verificacionCita)
-##schedule.every().day.at("04:35").do(verificacionCita)
-##schedule.every().day.at("05:35").do(verificacionCita)
-##schedule.every().day.at("06:35").do(verificacionCita)
-##schedule.every().day.at("07:35").do(verificacionCita)
-##schedule.every().day.at("08:35").do(verificacionCita)
-##schedule.every().day.at("09:35").do(verificacionCita)
-##schedule.every().day.at("10:35").do(verificacionCita)
-##schedule.every().day.at("11:35").do(verificacionCita)
-##schedule.every().day.at("12:35").do(verificacionCita)
-##schedule.every().day.at("13:35").do(verificacionCita)
-##schedule.every().day.at("14:35").do(verificacionCita)
-##schedule.every().day.at("15:35").do(verificacionCita)
-##schedule.every().day.at("16:35").do(verificacionCita)
-##schedule.every().day.at("17:35").do(verificacionCita)
-##schedule.every().day.at("18:35").do(verificacionCita)
-##schedule.every().day.at("19:35").do(verificacionCita)
-##schedule.every().day.at("20:35").do(verificacionCita)
-##schedule.every().day.at("21:35").do(verificacionCita)
-##schedule.every().day.at("22:35").do(verificacionCita)
-##schedule.every().day.at("23:35").do(verificacionCita)
+schedule.every().day.at("00:35").do(verificacionCita)
+schedule.every().day.at("03:35").do(verificacionCita)
+schedule.every().day.at("06:35").do(verificacionCita)
+schedule.every().day.at("09:35").do(verificacionCita)
+schedule.every().day.at("12:35").do(verificacionCita)
+schedule.every().day.at("15:35").do(verificacionCita)
+schedule.every().day.at("18:35").do(verificacionCita)
+schedule.every().day.at("21:35").do(verificacionCita)
 
-#verificacionCita()
+verificacionCita()
 
-#while (True):
-#    schedule.run_pending()
-#    time.sleep(1)
+while (True):
+    schedule.run_pending()
+    time.sleep(1)
