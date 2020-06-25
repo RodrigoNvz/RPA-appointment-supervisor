@@ -11,12 +11,10 @@ from datetime import datetime,timedelta
 from subprocess import STDOUT, check_output
 
 master_citas = [] # all appointments
-#master_report = [] #all reports by Control Vehicular
 outlook = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
-#account= win32.Dispatch("Outlook.Application").Session.Accounts
+account= win32.Dispatch("Outlook.Application").Session.Accounts
 expiredAccounts = []
 
-#print(outlook)
 def launchQlik(route, name, retries = 1):
     now = datetime.now()
     cmd = r'"C:\Program Files\QlikView\Qv.exe" /r ' + route
@@ -149,7 +147,6 @@ async def fsk_appointment_portal(user,passwd,account_name):
     #print(frametest)
     #awaited=await frames[0].childFrames[0].content()
 
-    
     citasProg=await frame01.waitForXPath('//*[@id="miTabla1"]/tbody/tr[4]/td[2]/a')
     await citasProg.click()
     ref='GeneraReporteFrm > table > tbody > tr:nth-child(12) > td:nth-child(8)'
@@ -161,8 +158,6 @@ async def fsk_appointment_portal(user,passwd,account_name):
     # Extracting table size
     tabla = await frame02.evaluate("(xtabla) => xtabla.children", xtabla)
     #print("LENGTH", tabla)
-
-
 
     #ref1=await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[12]/td[8]')
     #refF=await frame02.evaluate("(ref1) => ref1.innerText", ref1)
@@ -289,7 +284,6 @@ async def captureOTM(arrCR,arrLate):
 
 def destinoFinal():
     masterClienteDestino=[]
-    #with open(r'E:\Desktop\DHL\Citas\CLIENTE DESTINO.csv') as credentials:
     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers        
@@ -315,21 +309,11 @@ def sendEmail(address,body,subject):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0) 
     mail.To = address
-    #mail.VotingOptions = "Accept;Decline"
     mail.Subject = subject
-    #body3 = txttohtml("template.html")
-    #arrBorrar = ["Hello","World"]
     mail.HTMLBody = body
     images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
     mail.Attachments.Add(Source= images_path+"DHL.png")
-    #body #this field is optional
-    #mail.Attachments("DHL.png")
-    #a = "Email to:",address,"sent at:",datetime.now
-    #print(a)
-    #mail.ExpiryTime = a
-    #mail.ReminderTime = a
     mail.Send()
-    #print("Finished Succesfully")
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
@@ -339,11 +323,10 @@ def verificacionCita():
 
     #extract all apointments on master all citas
     now = datetime.now()
-    #retries = 5
     enviarCorreo = "No"
     anySinLateDelivery = 'No'
     anyLateDeliveryDiferente = 'No'
-    #for i in range(retries):        
+      
     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
@@ -358,19 +341,13 @@ def verificacionCita():
 
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("n04fw2y","Lenovo60","LENOVO"))
 
-        
-   
-    #for i in range(len(master_citas)):
-    #    print("Cita ",i,master_citas[i])
 
     light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
-    #lightArr=light.to_numpy()
-    #print(light["Confirmation"])
+
     print("Comparing Portal-OTM appointments...")
     tabla=pandas.DataFrame() # define table with just match of confirmation
     clienteDestino=destinoFinal()
     tablaCD=pandas.DataFrame() #table that will contain just the ones that match cliente destino.
-
 
     body = ''
     body +="<img src='DHL.png' width='287' height='82'>"
@@ -403,21 +380,19 @@ def verificacionCita():
                     shipmentEmail.append(tableTemp['SHIPMENT_XID'].values[0])
                     enviarCorreo="Si"
         elif(len(tableTemp)>1):
-            #tableTemp['LATE DELIVERY DATE']= str(datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%d/%m/%Y %H:%M:%S %p'))
-            #print("LEN > 1")
             for j in range(len(tableTemp)-1):
                 if (not (tableTemp['SHIPMENT_XID'].values[j] in shipmentEmail)):
                     if(not tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
                         sinLateDelivery +="<p style='font-family:sans-serif;'>Shipment_XID: {0} Cuenta: {1} Confirmacion:\
                             {2}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
+
                         anySinLateDelivery = 'Si'
-                        #print(tableTemp['LATE DELIVERY DATE'].values[j])
                         shipmentEmail.append(tableTemp['SHIPMENT_XID'].values[j])
                         enviarCorreo="Si"
                     else:
                         if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
                             #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])-timedelta(days=1))
-                            #print("Dates different")
+                            '''Dates different'''
                             lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br>Destino Final: {1} <br>Late Delivery Date en OTM: \
                                 {2} <br>Late Delivery Date en Portal Walmart: {3} <br>Tipo Viaje: {4} <br>Cuenta: {5} <br>Confirmacion: {6}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['DESTINO FINAL'].values[j],tableTemp['LATE DELIVERY DATE'].values[j],master_citas[i][1],tableTemp['TIPO VIAJE'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])         
                             anyLateDeliveryDiferente = 'Si'     
@@ -431,11 +406,6 @@ def verificacionCita():
     body += "<br><p style='font-family:sans-serif;'>Validar estatus y capturar la información en OTM a la brevedad. ¡Muchas Gracias!</p>"
 
     if (enviarCorreo == "Si"):
-        #print("GETTING IN")
-        #body = readHtml("citas.html")
-        #NOTES, BODY SHOULD BY CALIBRI FONT SIZE: BODY: 11 SUBTITLES: 12 AND TITLE: 18
-        #if (len(expiredAccounts)>0):
-            #sendEmail("jesus.vasquezs@dhl.com","<h2>Inconsistencias</h2>"+lateDeliveryDiferente+sinLateDelivery,"Reporte Inconsistencias")
         sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com;Joel.AlonsoContreras@dhl.com;Rodrigo.Narvaez@dhl.com",body,"Reporte Inconsistencias")
 
 #-----------------------------------------------------------------------------------------------------
