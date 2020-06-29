@@ -282,28 +282,28 @@ async def captureOTM(arrCR,arrLate):
     await page.waitFor(3000)
     await browser.close()'''
 
-def destinoFinal():
-    masterClienteDestino=[]
-    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
-        gen_reader = csv.reader(credentials, delimiter = ',')
-        next(gen_reader, None) #Skips headers        
-        for row in gen_reader:
-            tempCD=[]
-            clienteDestino = row[0]
-            destino = row[1]
-            minTime = row[2]
-            maxTime = row[3]
-            tempCD.append(clienteDestino)
-            tempCD.append(destino)
-            tempCD.append(minTime)
-            tempCD.append(maxTime)
-            masterClienteDestino.append(tempCD)
-    return masterClienteDestino
+# def destinoFinal():
+#     masterClienteDestino=[]
+#     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
+#         gen_reader = csv.reader(credentials, delimiter = ',')
+#         next(gen_reader, None) #Skips headers        
+#         for row in gen_reader:
+#             tempCD=[]
+#             clienteDestino = row[0]
+#             destino = row[1]
+#             minTime = row[2]
+#             maxTime = row[3]
+#             tempCD.append(clienteDestino)
+#             tempCD.append(destino)
+#             tempCD.append(minTime)
+#             tempCD.append(maxTime)
+#             masterClienteDestino.append(tempCD)
+#     return masterClienteDestino
 
 #Method that read an html to send an email
-def readHtml(address):
-    f = open(address, "r")
-    return f.read()
+# def readHtml(address):
+#     f = open(address, "r")
+#     return f.read()
 
 def sendEmail(address,body,subject):
     outlook = win32.Dispatch('outlook.application')
@@ -311,7 +311,7 @@ def sendEmail(address,body,subject):
     mail.To = address
     mail.Subject = subject
     mail.HTMLBody = body
-    images_path = "E:\\Documents\\Launch Scripts\\"
+    images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
     mail.Attachments.Add(Source= images_path+"DHL.png")
     mail.Send()
 
@@ -327,8 +327,7 @@ def verificacionCita():
     anySinLateDelivery = 'No'
     anyLateDeliveryDiferente = 'No'
       
-    #with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
-    with open(r'E:\Desktop\DHL\USUARIO.csv') as credentials:
+    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -344,13 +343,10 @@ def verificacionCita():
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("italia.castillo@bayer.com","Aspirina15","Bayer"))
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("2ej8x0c ","Hornitos9","Beam Suntory"))
 
-    #light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
-    light=lightReading(r'E:\Documents\Launch Scripts\Prime_Light.csv')#Now read prime light
-
+    light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
     print("Comparing Portal-OTM appointments...")
 
-    clienteDestinoCSV = csv.reader(open(r'E:\Desktop\DHL\CLIENTE DESTINO.csv'))
-    #clienteDestinoCSV = csv.reader(open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv'))
+    clienteDestinoCSV = csv.reader(open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv'))
 
     clienteDestinoDict = {} #Fill Cliente Destino values in dictionary
     for row in clienteDestinoCSV:
@@ -384,11 +380,11 @@ def verificacionCita():
                 if tableTemp['DESTINO FINAL'].values[0] in clienteDestinoDict:
                     horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[0]][1],'%H:%M')
                     if  datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
-                        tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1)) #If it's between the range substract one day
+                        tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1)) #If it's between the range substract one day
                 else:
                     horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
                     if datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
-                        tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
+                        tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1))
                 
                 #If mismatch found add to the body of the mail
                 if (not tableTemp['LATE DELIVERY DATE'].values[0] == str(master_citas[i][1]) ): 
@@ -419,12 +415,12 @@ def verificacionCita():
 
                             horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[j]][1],'%H:%M')
                             if  datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
-                                tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])-timedelta(days=1))
+                                tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         else:
                             horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
                             if datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
-                                tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])-timedelta(days=1))
+                                tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
                             lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br>Destino Final: {1} <br>Late Delivery Date en OTM: \
