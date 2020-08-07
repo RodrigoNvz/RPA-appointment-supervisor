@@ -1,4 +1,4 @@
-''' Automate appointments prototype 1.0
+''' Automate appointments prototype 2.0
     Authors:
         Jesus Heriberto Vasquez Sanchez
         Jose Rodrigo Narvaez Berlanga'''
@@ -46,20 +46,17 @@ async def wm_appointment_portal(user,passwd,account_name):
     username = await page.querySelector(strusername)
     password = await page.querySelector(strpass)
 
-    #print("Filling form...")
     await username.type(user)
     await password.type(passwd)
     await page.click(strbtn)
     try: 
         await page.waitForNavigation()
-        #print("Succesful login...Navigating")
     except:
         print("Failed in",account_name,"login.")
         expiredAccounts.append(account_name)
         await browser.close()
         return 0
     
-
     # Opening query session
     testpage = await browser.newPage()
     await testpage.goto("https://retaillink.wal-mart.com/navis/default.aspx")
@@ -73,13 +70,11 @@ async def wm_appointment_portal(user,passwd,account_name):
     
     # Extracting table size
     tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
-    #print("LENGTH", tabla)
     
     #Use try to manage when there are no near appointments 
     noAppointFound= await testpage.querySelector(entregasEncontradas)
     noAppointments=await testpage.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
     if noAppointments=='0':
-        #print("NO",account_name,"APPOINTMENTS IN PORTAL")
         await page.waitFor(5000)
         await browser.close()
     else:
@@ -89,7 +84,6 @@ async def wm_appointment_portal(user,passwd,account_name):
             no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
             x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
             cita = await testpage.evaluate("(x2) => x2.innerText", x2)
-            # Conversión a datetime
             clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
             master_citas.append([no_entrega, clean_cita])
         
@@ -110,22 +104,19 @@ async def fsk_appointment_portal(user,passwd,account_name):
     enterbtn="body > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(4) > form > table > tbody > tr:nth-child(4) > td > input[type=IMAGE]"
     citasProgramadas="miTabla1 > tbody > tr:nth-child(4) > td.menuSub > a"
     
-
-    #citasprogramadas="body > table > tbody > miTabla1 > tbody > tr:nth-child(4) > td.menuSub > a"
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
     page.setDefaultNavigationTimeout(30000) # maybe 60000
+    
     await page.goto("http://www.provecomer.com.mx/htmlProvecomer/provecomer.html")
     await page.waitFor(strusr)
     await page.waitFor(strpass)
-
     username = await page.querySelector(strusr)
     password = await page.querySelector(strpass)
-
-    #print("Filling form...")
     await username.type(user)
     await password.type(passwd)
     await page.click(enterbtn) 
+
     # try: 
     #     await page.waitForNavigation()
     #     print("Succesful login...Navigating")
@@ -133,6 +124,7 @@ async def fsk_appointment_portal(user,passwd,account_name):
     #     print("Failed in",account_name,"login.")
     #     await browser.close()
     #     return 0
+
     txt=await page.content()
     frames=page.frames
     frame01=frames[2] #this is the one for miTabla1
@@ -158,7 +150,6 @@ async def fsk_appointment_portal(user,passwd,account_name):
     xtabla = await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody')
     # Extracting table size
     tabla = await frame02.evaluate("(xtabla) => xtabla.children", xtabla)
-    #print("LENGTH", tabla)
 
     #ref1=await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[12]/td[8]')
     #refF=await frame02.evaluate("(ref1) => ref1.innerText", ref1)
@@ -179,7 +170,6 @@ async def fsk_appointment_portal(user,passwd,account_name):
             refCita = await frame02.evaluate("(x1) => x1.innerText", x1)
             x2 = await frame02.waitForXPath('//*[@id="GeneraReporteFrm"]/table/tbody/tr[{}]/td[13]'.format(index))
             refFecha= await frame02.evaluate("(x2) => x2.innerText",x2)            
-            #master_temporal.append([refCita,refFecha])
             if(refCita !='Num. Ref.'):
             #clean_cita = datetime.strptime(refFecha,'%m/%d/%y %I:%M %p')
                 master_temporal.append([refCita,refFecha])
@@ -195,16 +185,13 @@ async def fsk_appointment_portal(user,passwd,account_name):
         #     #clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
         #     print(refI)
         #     master_temporal.append(refI)
-    #await
     print(master_temporal)
     
     await page.waitFor(6000)
 
-
 #-----------------------------------------------------------------------------------------------------
 #Validate appointments in OTM 
 async def captureOTM(arrCR,arrLate):
-    # try:
     # browser = await launch({'args': ['--disable-dev-shm-usage']})
     #browser = await launch(headless=False)  # headless false means open the browser in the operation
     browser = await launch()
@@ -212,14 +199,14 @@ async def captureOTM(arrCR,arrLate):
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
     page.setDefaultNavigationTimeout(60000)
     await page.goto("https://dsctmsr2.dhl.com/GC3/glog.webserver.servlet.umt.Login")
-    # await page.waitFor(2000) 
+
     data=readFile(r"appointData.txt", "txt")
     passw=await page.waitFor("[name='userpassword']")
     usernN=await page.waitFor("[name='username']")
     await passw.type(data[1])
-    await usernN.type(data[0])
-       
+    await usernN.type(data[0])       
     await page.click("[name='submitbutton']")  
+
     returned=[]
     for i in range(len(arrCR)):
         valuei=[]
@@ -230,7 +217,7 @@ async def captureOTM(arrCR,arrLate):
         #await page.type("[name='order_release/xid']", oR[i])
         await page.type("[name='orrOrderReleaseRefnumValue59']",arrCR[i])
         await page.keyboard.press("Enter")
-        # Aqui checamos si la cita hace match con el sitio web de walmart
+
         await page.waitFor("[tabindex='201']")
         confirm = await page.querySelector("[id='rgSGSec.2.2.1.22']")
         folio = await page.evaluate('(confirm)=> confirm.textContent', confirm)
@@ -261,51 +248,30 @@ async def captureOTM(arrCR,arrLate):
         while temp < 3 : #Wait until the frame is loaded
             temp= len(frames)
         frame = page.frames[3]
-        #await page.waitFor(1000)
+
         await frame.waitFor("[name='order_release/delivery_is_appt']")
         await frame.waitFor("[name='order_release/early_delivery_date']")
         await frame.waitFor("[name='order_release/late_delivery_date']") #Wait for the order release)
         await frame.waitFor("[name='order_release/ship_with_group']")
-        # #print("Success")
+
         # checked= await frame.querySelector("[name='order_release/delivery_is_appt']")
         # buttonstatus=await(await checked.getProperty('checked')).jsonValue()
         # if buttonstatus==True:
         #     await frame.type("[name='order_release/late_delivery_date']",lateDate)
         # else:
+
         await frame.type("[name='order_release/ship_with_group']",arrCR[i])
         #await frame.type("[name='order_release/early_delivery_date']",firstDate)
         await frame.type("[name='order_release/late_delivery_date']",arrLate[i])
         await frame.click("[name='order_release/delivery_is_appt']")
         await frame.waitFor(1000)
-        #print("PASSED")
-    #print("SUCCESS----")
+
     '''return returned
     await page.waitFor(3000)
     await browser.close()'''
 
-# def destinoFinal():
-#     masterClienteDestino=[]
-#     with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv') as credentials:
-#         gen_reader = csv.reader(credentials, delimiter = ',')
-#         next(gen_reader, None) #Skips headers        
-#         for row in gen_reader:
-#             tempCD=[]
-#             clienteDestino = row[0]
-#             destino = row[1]
-#             minTime = row[2]
-#             maxTime = row[3]
-#             tempCD.append(clienteDestino)
-#             tempCD.append(destino)
-#             tempCD.append(minTime)
-#             tempCD.append(maxTime)
-#             masterClienteDestino.append(tempCD)
-#     return masterClienteDestino
-
-#Method that read an html to send an email
-# def readHtml(address):
-#     f = open(address, "r")
-#     return f.read()
-
+#-----------------------------------------------------------------------------------------------------
+#Method to send Email
 def sendEmail(address,body,subject):
     o = win32.Dispatch("Outlook.Application")
     oacctouse = None
@@ -323,17 +289,6 @@ def sendEmail(address,body,subject):
     images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
     Msg.Attachments.Add(Source= images_path+"DHL.png")    
     Msg.Send()
-
-# def sendEmail(address,body,subject):
-#     outlook = win32.Dispatch('outlook.application')
-#     mail = outlook.CreateItem(0) 
-#     mail.To = address
-#     mail.Subject = subject
-#     mail.HTMLBody = body
-#     images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
-#     mail.Attachments.Add(Source= images_path+"DHL.png")
-#     mail.SendUsingAccount=account[1]
-#     mail.Send()
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
@@ -359,10 +314,6 @@ def verificacionCita():
             except:
                 print('Timeout',now.strftime("%Y-%m-%d %H:%M"),": ","on account:",account_name)
 
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("p6is5yh","Australia2027","AT&T"))
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("italia.castillo@bayer.com","Aspirina15","Bayer"))
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("2ej8x0c ","Hornitos9","Beam Suntory"))
-
     light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
 
     clienteDestinoCSV = csv.reader(open(r'S:\TRANSPORTE\LPC\ApptUser\CLIENTE DESTINO.csv'))
@@ -384,7 +335,7 @@ def verificacionCita():
         body += "<p style='font-family:sans-serif;'>Favor de actualizar el archivo  deptos$\\MXCUTWS0001(S:)\\TRANSPORTE\\LPC\\ApptUser\\Usuarios.csv con las cuentas correspondientes.</p>"
         enviarCorreo="Si"
     
-    
+
     shipmentEmail = []
     sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date en OTM</b></p>"
     lateDeliveryDiferente = "<p style='font-family:sans-serif;'><b>Citas con Late Delivery Diferente</b></p>"
@@ -399,11 +350,11 @@ def verificacionCita():
 
                 if tableTemp['DESTINO FINAL'].values[0] in clienteDestinoDict:
                     horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[0]][1],'%H:%M')
-                    if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour >= horaLimite.hour:
+                    if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
                         tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1)) #If it's between the range substract one day
                 else:
                     horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
-                    if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour >= horaLimite.hour:
+                    if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
                         tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1))
                 
                 #If mismatch found add to the body of the mail
@@ -434,12 +385,12 @@ def verificacionCita():
                         if tableTemp['DESTINO FINAL'].values[j] in clienteDestinoDict:
 
                             horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[j]][1],'%H:%M')
-                            if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour >= horaLimite.hour:
+                            if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour > horaLimite.hour:
                                 tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         else:
                             horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
-                            if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour >= horaLimite.hour:
+                            if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour > horaLimite.hour:
                                 tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
