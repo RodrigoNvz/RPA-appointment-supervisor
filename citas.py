@@ -13,6 +13,7 @@ from subprocess import STDOUT, check_output
 master_citas = [] # all appointments
 outlook = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
 account= win32.Dispatch("Outlook.Application").Session.Accounts
+
 expiredAccounts = []
 
 def launchQlik(route, name, retries = 1):
@@ -306,14 +307,33 @@ async def captureOTM(arrCR,arrLate):
 #     return f.read()
 
 def sendEmail(address,body,subject):
-    outlook = win32.Dispatch('outlook.application')
-    mail = outlook.CreateItem(0) 
-    mail.To = address
-    mail.Subject = subject
-    mail.HTMLBody = body
+    o = win32.Dispatch("Outlook.Application")
+    oacctouse = None
+    for oacc in o.Session.Accounts:
+        if oacc.SmtpAddress == "rpa.transport_@dhl.com":
+            oacctouse = oacc
+            break
+    Msg = o.CreateItem(0)
+    if oacctouse:
+        Msg._oleobj_.Invoke(*(64209, 0, 8, 0, oacctouse))  # Msg.SendUsingAccount = oacctouse
+
+    Msg.To = address
+    Msg.HTMLBody = body
+    Msg.Subject= subject
     images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
-    mail.Attachments.Add(Source= images_path+"DHL.png")
-    mail.Send()
+    Msg.Attachments.Add(Source= images_path+"DHL.png")    
+    Msg.Send()
+
+# def sendEmail(address,body,subject):
+#     outlook = win32.Dispatch('outlook.application')
+#     mail = outlook.CreateItem(0) 
+#     mail.To = address
+#     mail.Subject = subject
+#     mail.HTMLBody = body
+#     images_path = "C:\\Users\\jesushev\\Documents\\LaunchScripts\\Ramses\\"
+#     mail.Attachments.Add(Source= images_path+"DHL.png")
+#     mail.SendUsingAccount=account[1]
+#     mail.Send()
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
@@ -327,7 +347,7 @@ def verificacionCita():
     anySinLateDelivery = 'No'
     anyLateDeliveryDiferente = 'No'
       
-    with open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\USUARIO.csv') as credentials:
+    with open(r'S:\TRANSPORTE\LPC\ApptUser\USUARIO.csv') as credentials:
         gen_reader = csv.reader(credentials, delimiter = ',')
         next(gen_reader, None) #Skips headers
         for row in gen_reader:
@@ -344,9 +364,8 @@ def verificacionCita():
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("2ej8x0c ","Hornitos9","Beam Suntory"))
 
     light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
-    print("Comparing Portal-OTM appointments...")
 
-    clienteDestinoCSV = csv.reader(open(r'\\Mxmex1-fipr01\public$\Nave 1\LPC\ApptUsers\CLIENTE DESTINO.csv'))
+    clienteDestinoCSV = csv.reader(open(r'S:\TRANSPORTE\LPC\ApptUser\CLIENTE DESTINO.csv'))
 
     clienteDestinoDict = {} #Fill Cliente Destino values in dictionary
     for row in clienteDestinoCSV:
@@ -354,6 +373,7 @@ def verificacionCita():
         if key in clienteDestinoDict:
             pass
         clienteDestinoDict[key] = row[1:] 
+    print("Comparing Portal-OTM appointments...")
 
     body = ''
     body +="<img src='DHL.png' width='287' height='82'>"
@@ -361,12 +381,12 @@ def verificacionCita():
         body += "<p style='font-family:sans-serif;'><b>Usuarios desactualizados</b></p>"
         for i in range (len(expiredAccounts)):
             body += "<p style='font-family:sans-serif;'>{0}</p>".format(expiredAccounts[i])
-        body += "<p style='font-family:sans-serif;'>Favor de actualizar el archivo  \\Mxmex1-fipr01\\public$\\Nave 1\\LPC\\ApptUsers\\Usuarios.csv con las cuentas correspondientes.</p>"
+        body += "<p style='font-family:sans-serif;'>Favor de actualizar el archivo  deptos$\\MXCUTWS0001(S:)\\TRANSPORTE\\LPC\\ApptUser\\Usuarios.csv con las cuentas correspondientes.</p>"
         enviarCorreo="Si"
     
     
     shipmentEmail = []
-    sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date</b></p>"
+    sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date en OTM</b></p>"
     lateDeliveryDiferente = "<p style='font-family:sans-serif;'><b>Citas con Late Delivery Diferente</b></p>"
     
     for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
@@ -379,16 +399,16 @@ def verificacionCita():
 
                 if tableTemp['DESTINO FINAL'].values[0] in clienteDestinoDict:
                     horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[0]][1],'%H:%M')
-                    if  datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
+                    if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour >= horaLimite.hour:
                         tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1)) #If it's between the range substract one day
                 else:
                     horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
-                    if datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
+                    if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[0],'%Y-%m-%d %H:%M:%S').hour >= horaLimite.hour:
                         tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])+timedelta(days=1))
                 
                 #If mismatch found add to the body of the mail
                 if (not tableTemp['LATE DELIVERY DATE'].values[0] == str(master_citas[i][1]) ): 
-                    
+                    tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
                     lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br> Destino Final: {1} <br>Late Delivery Date en OTM: {2} <br> \
                         Late Delivery Date en Portal Walmart: {3} <br>Tipo Viaje: {4} <br> Cuenta: {5} \
                             <br> Confirmacion: {6}<br><br></p> ".format(tableTemp['SHIPMENT_XID'].values[0],tableTemp['DESTINO FINAL'].values[0],tableTemp['LATE DELIVERY DATE'].values[0],master_citas[i][1],tableTemp['TIPO VIAJE'].values[0],tableTemp['CUENTA'].values[0],tableTemp['CONFIRMATION'].values[0])          
@@ -401,7 +421,7 @@ def verificacionCita():
             for j in range(len(tableTemp)-1):
                 if (not (tableTemp['SHIPMENT_XID'].values[j] in shipmentEmail)):
                     
-                    if(not tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
+                    if(tableTemp['LATE DELIVERY DATE'].values[j]=="nan"):
                         sinLateDelivery +="<p style='font-family:sans-serif;'>Shipment_XID: {0} Cuenta: {1} Confirmacion:\
                             {2}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
 
@@ -414,15 +434,16 @@ def verificacionCita():
                         if tableTemp['DESTINO FINAL'].values[j] in clienteDestinoDict:
 
                             horaLimite = datetime.strptime(clienteDestinoDict[tableTemp['DESTINO FINAL'].values[j]][1],'%H:%M')
-                            if  datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
+                            if  datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour >= horaLimite.hour:
                                 tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         else:
                             horaLimite = datetime.strptime(clienteDestinoDict['LOS DEMAS'][1],'%H:%M')
-                            if datetime.strptime('00:00','%H:%M').hour < datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%Y-%m-%d %H:%M:%S').hour > horaLimite.hour:
+                            if datetime.strptime('00:00','%H:%M').hour <= datetime.strptime(tableTemp['LATE DELIVERY DATE'].values[j],'%d/%m/%Y %H:%M:%S %p').hour >= horaLimite.hour:
                                 tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[j])+timedelta(days=1))
 
                         if (not tableTemp['LATE DELIVERY DATE'].values[j] == str(master_citas[i][1]) ):
+                            tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
                             lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Shipment_XID: {0} <br>Destino Final: {1} <br>Late Delivery Date en OTM: \
                                 {2} <br>Late Delivery Date en Portal Walmart: {3} <br>Tipo Viaje: {4} <br>Cuenta: {5} <br>Confirmacion: {6}<br><br></p>".format(tableTemp['SHIPMENT_XID'].values[j],tableTemp['DESTINO FINAL'].values[j],tableTemp['LATE DELIVERY DATE'].values[j],master_citas[i][1],tableTemp['TIPO VIAJE'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])         
                             anyLateDeliveryDiferente = 'Si'     
@@ -432,12 +453,15 @@ def verificacionCita():
     if anyLateDeliveryDiferente == 'Si':
         body += lateDeliveryDiferente
     if anySinLateDelivery == 'Si':
-        body += sinLateDelivery
-    body += "<br><p style='font-family:sans-serif;'>Validar estatus y capturar la información en OTM a la brevedad. ¡Muchas Gracias!</p>"
+        body += sinLateDelivery    
+    if anySinLateDelivery == 'Si' or anyLateDeliveryDiferente == 'Si':
+        body += "<br><p style='font-family:sans-serif;'>Validar estatus y capturar la información en OTM a la brevedad. ¡Muchas Gracias!</p>"
 
     if (enviarCorreo == "Si"):
-        #sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com;Joel.AlonsoContreras@dhl.com;Rodrigo.Narvaez@dhl.com",body,"Reporte Inconsistencias")
+        #sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com",body,"Reporte Inconsistencias")
         sendEmail("jesus.vasquezsanchezs@dhl.com",body,"Reporte Inconsistencias")
+    else:
+        print("Usuarios actualizados, no hay inconsistencias.")
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
@@ -469,22 +493,31 @@ def readFile(route, typeF):  # ReadFile Method
             data = [cuentas, users, passws]
         return data
 
+def validEstatus():
+    time = os.path.getmtime(r'S:\TRANSPORTE\LPC\Power BI\Qlikview\Extract\Prime\Data\Prime.csv')
+    dateTime = datetime.fromtimestamp(time)
+    timeFormated= dateTime.strftime('%d/%m/%Y %H:%M:%S')
+    before = datetime.now()-timedelta(hours=1)
+    now = datetime.now()
+    if before < dateTime < now:
+        print("Prime se encuentra actualizado")
+        verificacionCita()
+    else:
+        print("Generación de Prime retrasada")
+
+def main():
+    #try:
+    validEstatus()
+    #except Exception as e:
+        #print('Excepción en main', main)
+
 #-----------------------------------------------------------------------------------------------------
-#asyncio.get_event_loop().run_until_complete(fsk_appointment_portal('10101071','DHL900821M4','Test'))
+#asyncio.get_event_loop().run_until_complete(fsk_appointment_portal('10101071','DHL900821M4','Test')
 
-verificacionCita()
+schedule.every().day.at("09:35").do(main)
 
-# schedule.every().day.at("00:35").do(verificacionCita)
-# schedule.every().day.at("03:35").do(verificacionCita)
-# schedule.every().day.at("06:35").do(verificacionCita)
-# schedule.every().day.at("09:35").do(verificacionCita)
-# schedule.every().day.at("12:35").do(verificacionCita)
-# schedule.every().day.at("15:35").do(verificacionCita)
-# schedule.every().day.at("18:35").do(verificacionCita)
-# schedule.every().day.at("21:35").do(verificacionCita)
+main()
 
-# verificacionCita()
-
-# while (True):
-#     schedule.run_pending()
-#     time.sleep(1)
+while (True):
+    schedule.run_pending()
+    time.sleep(1)
