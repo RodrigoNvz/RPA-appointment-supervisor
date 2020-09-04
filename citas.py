@@ -1,8 +1,3 @@
-''' Automate appointments prototype 2.0
-    Authors:
-        Jesus Heriberto Vasquez Sanchez
-        Jose Rodrigo Narvaez Berlanga'''
-
 import asyncio, os, time, pyppeteer, pandas, csv
 import numpy,calendar,schedule, datetime,shutil,win32com.client as win32
 import os, sys
@@ -11,6 +6,7 @@ from datetime import datetime,timedelta
 from subprocess import STDOUT, check_output
 
 master_citas = [] # all appointments
+failed_logins=[]
 outlook = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
 account= win32.Dispatch("Outlook.Application").Session.Accounts
 
@@ -28,62 +24,60 @@ def launchQlik(route, name, retries = 1):
             print('Timeout',now.strftime("%Y-%m-%d %H:%M"),': ', name)
     return 0 
 
-#Walmart appointment extraction method
+
 async def wm_appointment_portal(user,passwd,account_name):
-    #browser = await launch(headless=False)
-    browser = await launch()
+    browser = await launch( ignoreHTTPSErrors = True)
     strusername = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(1) > span > span > input"
     strpass = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > span:nth-child(2) > span > span > input"
     strbtn = "body > div > div > div > div.page-container > div.main-container > div.content-container > div > div > form > button"
     entregasEncontradas="#mc >  tbody > tr:nth-child(2) > td.contentPanel > table > tbody > tr:nth-child(4) > td > form > table > tbody > tr > td > table > tbody > tr.contentBodyRow > td.contentBody > table.formTable > tbody > tr:nth-child(2) > td.valueTd"
-
+ 
     page = await browser.newPage()
     await page.setViewport({"width": 1024, "height": 768, "deviceScaleFactor": 1})
-    page.setDefaultNavigationTimeout(30000) 
+    page.setDefaultNavigationTimeout(100000) 
     await page.goto("https://retaillink.login.wal-mart.com/?ServerType=IIS1&CTAuthMode=BASIC&language=en&utm_source=retaillink&utm_medium=redirect&utm_campaign=FalconRelease&CT_ORIG_URL=/&ct_orig_uri=/")
-    await page.waitFor(strusername)
 
+    await page.waitFor(strusername)
+    url_actual=page.url
     username = await page.querySelector(strusername)
     password = await page.querySelector(strpass)
-
+ 
     await username.type(user)
     await password.type(passwd)
     await page.click(strbtn)
-    try: 
-        await page.waitForNavigation()
+    try:
+        await page.waitForSelector("#app > div > div:nth-child(1) > header > div > div.rl-header-logo > img", waitUntil='networkidle2')
     except:
         print("Failed in",account_name,"login.")
-        expiredAccounts.append(account_name)
+        failed_logins.append([account_name,user,passwd])
         await browser.close()
         return 0
-    
-    # Opening query session
-    testpage = await browser.newPage()
-    await testpage.goto("https://retaillink.wal-mart.com/navis/default.aspx")
-    await testpage.waitForNavigation()
-    await testpage.waitForNavigation()
-    await testpage.waitForNavigation()
 
     # Opening this week Deliveries
-    await testpage.goto("https://logistics-scheduler-www9.wal-mart.com/trips_mx/quickQuery.do?type=thisWeeksDeliveries")
-    xtabla = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody')
+    await page.goto("https://retaillink.wal-mart.com/navis/default.aspx")
+    await page.waitForNavigation()
+    await page.waitForNavigation()
+    await page.waitForNavigation()
+    await page.goto("https://logistics-scheduler-www9.wal-mart.com/trips_mx/quickQuery.do?type=thisWeeksDeliveries")
+    xtabla = await page.waitForXPath('//*[@id="SortTable0"]/tbody', timeout=0)
     
     # Extracting table size
-    tabla = await testpage.evaluate("(xtabla) => xtabla.children", xtabla)
+    await page.waitFor(2000)
+    tabla = await page.evaluate("(xtabla) => xtabla.children", xtabla)
     
     #Use try to manage when there are no near appointments 
-    noAppointFound= await testpage.querySelector(entregasEncontradas)
-    noAppointments=await testpage.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
+    noAppointFound= await page.querySelector(entregasEncontradas)
+    noAppointments=await page.evaluate('(noAppointFound) => noAppointFound.textContent',noAppointFound)
     if noAppointments=='0':
         await page.waitFor(5000)
         await browser.close()
     else:
         for i in range(1, len(tabla) + 1):
             index = str(i)
-            x1 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
-            no_entrega = await testpage.evaluate("(x1) => x1.innerText", x1)
-            x2 = await testpage.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
-            cita = await testpage.evaluate("(x2) => x2.innerText", x2)
+            x1 = await page.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[1]/a'.format(index))
+            no_entrega = await page.evaluate("(x1) => x1.innerText", x1)
+            x2 = await page.waitForXPath('//*[@id="SortTable0"]/tbody/tr[{}]/td[8]'.format(index))
+            cita = await page.evaluate("(x2) => x2.innerText", x2)
             clean_cita = datetime.strptime(cita,'%m/%d/%y %I:%M %p')#.strftime('%m/%d/%Y %I:%M:%S %p')
             master_citas.append([no_entrega, clean_cita])
         
@@ -94,6 +88,7 @@ async def wm_appointment_portal(user,passwd,account_name):
         except:
             print("Error al cerrar, same as always")
         return master_citas
+
 
 #-----------------------------------------------------------------------------------------------------
 #Freko-portal
@@ -292,7 +287,7 @@ def sendEmail(address,body,subject):
 
 #-----------------------------------------------------------------------------------------------------
 # Here we do the verification between the walmart site and OTM, consolidating data
-def verificacionCita():
+def verificacionCita():    
     print("Cargando Qlikview...")
     launchQlik(r'C:\Users\jesushev\Documents\QV\citas.qvw', 'Prime Light', 3)
 
@@ -313,9 +308,11 @@ def verificacionCita():
     #             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
     #         except:
     #             print('Timeout',now.strftime("%Y-%m-%d %H:%M"),": ","on account:",account_name)
-    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("yuriria.perez@dhl.com","Mayonesa2020","MONDELEZ"))
+    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("yuriria.perez@dhl.com","Mayonesa2020","MONDELEZ"))
     asyncio.get_event_loop().run_until_complete(wm_appointment_portal("c7cs1bg","GL2021mx","LENOVO"))
-    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("4oy63w5 ","Julio*2020","OTHER"))
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("4oy63w5 ","Julio*2020","OTHER"))
+    print(master_citas)
+    print(master_citas[0])
     light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
     clienteDestinoCSV = csv.reader(open(r'S:\TRANSPORTE\LPC\ApptUser\CLIENTE DESTINO.csv'))
 
@@ -339,17 +336,14 @@ def verificacionCita():
     orderEmail = []
     sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date en OTM</b></p>"
     lateDeliveryDiferente = "<p style='font-family:sans-serif;'><b>Citas con Late Delivery Diferente</b></p>"
-    
-    print(master_citas)
-    tableTemp=light[(light["CONFIRMATION"]== 318950)]
-    print(tableTemp)
-    print(tableTemp["LATE DELIVERY DATE"]+'\n')
-    print(tableTemp["LATE DELIVERY DATE"].iloc[0])
+   
+    tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[1][0]))]
 
-    if (not tableTemp["LATE DELIVERY DATE"].iloc[0] is None):
-        print("Not nan")
-    else:
-        print("nan")
+    #print(tableTemp)
+    # if (not tableTemp["LATE DELIVERY DATE"].iloc[12] =='nan'):
+    #     print("Not nan")
+    # else:
+    #     print("nan")
     # for i in range(len(master_citas)): #generate a new table with the one that matched then use that table on the other comparision
     #     tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[i][0]))]
                 
@@ -390,7 +384,7 @@ def verificacionCita():
     #                 lightLateDelivery = datetime.strftime(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0]),'%d/%m/%Y %I:%M:%S %p')
     #                 portalLateDelivery = datetime.strftime(master_citas[i][1], '%d/%m/%Y %I:%M:%S %p')
     #                 if (not lightLateDelivery == portalLateDelivery):  
-    #                     #print(lightLateDelivery, portalLateDelivery, tableTemp['ORDER_RELEASE_GID'].values[0]) 
+    #                     print(lightLateDelivery, portalLateDelivery, tableTemp['ORDER_RELEASE_GID'].values[0]) 
     #     #             #tableTemp['LATE DELIVERY DATE']= str(pandas.to_datetime(tableTemp['LATE DELIVERY DATE'].values[0])-timedelta(days=1))
     #                     lateDeliveryDiferente +="<p style='font-family:sans-serif;'>Order Release: {0} <br> Shipment: {1} Destino Final: {2} <br>Late Delivery Date en OTM: {3} <br> \
     #                     Late Delivery Date en Portal Walmart: {4} <br>Tipo Viaje: {5} <br> Cuenta: {6} \
@@ -403,30 +397,25 @@ def verificacionCita():
     #     elif(len(tableTemp)>1):
     #         #print(len(tableTemp))
     #         for j in range(len(tableTemp)):
-    #             if (not (tableTemp['ORDER_RELEASE_GID'].values[j] in orderEmail)):
-                
-                    
-    #                 if(tableTemp['LATE DELIVERY DATE'].iloc[j] is None):
-    #                     print ("None 2")
-    #                 # print("Is DATE",tableTemp['LATE DELIVERY DATE'].iloc[j][i],i,j)
+    #             #if (not (tableTemp['ORDER_RELEASE_GID'].values[j] in orderEmail)):s 
+    #             if(not tableTemp['LATE DELIVERY DATE'].iloc[j] == 'nan'):
+    #                 print("Is DATE",tableTemp['LATE DELIVERY DATE'].iloc[j],i,j)
     #                 # print(tableTemp['LATE DELIVERY DATE'])
 
-    #                 # print(tableTemp['LATE DELIVERY DATE'].values[0],"values[0]")
-    #                 # print(tableTemp['LATE DELIVERY DATE'].values[1],"[1]")
+                    # print(tableTemp['LATE DELIVERY DATE'].values[0],"values[0]")
+                    # print(tableTemp['LATE DELIVERY DATE'].values[1],"[1]")
                                       
-    #                 # if(tableTemp['LATE DELIVERY DATE'].values[j] is None):
-    #                 #     print(tableTemp['LATE DELIVERY DATE'].values[j], "isnull")
+                    # if(tableTemp['LATE DELIVERY DATE'].values[j] is None):
+                    #     print(tableTemp['LATE DELIVERY DATE'].values[j], "isnull")
                     
-    #                 # else:
-    #                 #print(tableTemp['LATE DELIVERY DATE'].values[j], "notnull")
-    #                     sinLateDelivery +="<p style='font-family:sans-serif;'>Order Release: {0} Shipment: {1} Cuenta: {2} Confirmacion:\
-    #                     {3}<br><br></p>".format(tableTemp['ORDER_RELEASE_GID'].values[j],tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
+                    # else:
+                    #     print(tableTemp['LATE DELIVERY DATE'].values[j], "notnull")
+                        # sinLateDelivery +="<p style='font-family:sans-serif;'>Order Release: {0} Shipment: {1} Cuenta: {2} Confirmacion:\
+                        # {3}<br><br></p>".format(tableTemp['ORDER_RELEASE_GID'].values[j],tableTemp['SHIPMENT_XID'].values[j],tableTemp['CUENTA'].values[j],tableTemp['CONFIRMATION'].values[j])
 
-    #                     orderEmail.append(tableTemp['ORDER_RELEASE_GID'].values[j])
-    #                     anySinLateDelivery = 'Si'
-    #                     enviarCorreo="Si"
-    #                 else:
-                    #    print (tableTemp['LATE DELIVERY DATE'].iloc[j])
+                        # orderEmail.append(tableTemp['ORDER_RELEASE_GID'].values[j])
+                        # anySinLateDelivery = 'Si'
+                        # enviarCorsreo="Si"
 
         #             else:                        
         #                 if tableTemp['DESTINO FINAL'].values[j] in clienteDestinoDict:
@@ -477,11 +466,11 @@ def verificacionCita():
     # if anySinLateDelivery == 'Si' or anyLateDeliveryDiferente == 'Si':
     #     body += "<br><p style='font-family:sans-serif;'>Validar estatus y capturar la información en OTM a la brevedad. ¡Muchas Gracias!</p>"
 
-    # if (enviarCorreo == "Si"):
-    #     #sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com; Alejandro.PeraltaD@dhl.com ",body,"Reporte Inconsistencias")
-    #     sendEmail("jesus.vasquezsanchezs@dhl.com",body,"Reporte Inconsistencias")
-    # else:
-    #     print("Usuarios actualizados, no hay inconsistencias.")
+    #if (enviarCorreo == "Si"):
+    #    sendEmail("OM-LLPC@DHL.COM;Julio.VegaC@dhl.com;Alejandro.RiveraD@dhl.com;Diego.MartinezG@dhl.com; Alejandro.PeraltaD@dhl.com ",body,"Reporte Inconsistencias")
+        #sendEmail("jesus.vasquezsanchezs@dhl.com",body,"Reporte Inconsistencias")
+    #else:
+    #    print("Usuarios actualizados, no hay inconsistencias.")
 
 #-----------------------------------------------------------------------------------------------------
 # Method that filter the info requierd from the prime light
@@ -514,16 +503,16 @@ def readFile(route, typeF):  # ReadFile Method
         return data
 
 def validEstatus():
-    time = os.path.getmtime(r'S:\TRANSPORTE\LPC\Power BI\Qlikview\Extract\Prime\Data\Prime.csv')
+    time = os.path.getmtime(r'S:\TRANSPORTE\LPC\Power BI\Qlikview\Extract\Prime\Data\Prime.qvd')
     dateTime = datetime.fromtimestamp(time)
     timeFormated= dateTime.strftime('%d/%m/%Y %H:%M:%S')
     before = datetime.now()-timedelta(hours=1)
     now = datetime.now()
     if before < dateTime < now:
-        print("Prime se encuentra actualizado")
+        print("Prime.qvd se encuentra actualizado")
         verificacionCita()
     else:
-        print("Generación de Prime atrasada")
+        print("Prime.qvd lleva 1 hora de retraso")
 
 def main():
     #try:
