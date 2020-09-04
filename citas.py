@@ -308,11 +308,11 @@ def verificacionCita():
     #             asyncio.get_event_loop().run_until_complete(wm_appointment_portal(user,password,account_name))
     #         except:
     #             print('Timeout',now.strftime("%Y-%m-%d %H:%M"),": ","on account:",account_name)
-    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("yuriria.perez@dhl.com","Mayonesa2020","MONDELEZ"))
-    asyncio.get_event_loop().run_until_complete(wm_appointment_portal("c7cs1bg","GL2021mx","LENOVO"))
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("yuriria.perez@dhl.com","Mayonesa2020","MONDELEZ"))
+    #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("c7cs1bg","GL2021mx","LENOVO"))
     #asyncio.get_event_loop().run_until_complete(wm_appointment_portal("4oy63w5 ","Julio*2020","OTHER"))
-    print(master_citas)
-    print(master_citas[0])
+    #print(master_citas)
+    #print(master_citas[0])
     light=lightReading(r'S:\TRANSPORTE\LPC\TEMP\Beto\Prime_Light.csv')#Now read prime light
     clienteDestinoCSV = csv.reader(open(r'S:\TRANSPORTE\LPC\ApptUser\CLIENTE DESTINO.csv'))
 
@@ -337,7 +337,15 @@ def verificacionCita():
     sinLateDelivery = "<p style='font-family:sans-serif;'><b>Citas sin Late Delivery Date en OTM</b></p>"
     lateDeliveryDiferente = "<p style='font-family:sans-serif;'><b>Citas con Late Delivery Diferente</b></p>"
    
-    tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[1][0]))]
+    #tableTemp=light[(light["CONFIRMATION"]==(int)(master_citas[1][0]))]
+    tableTemp=light[(light["CONFIRMATION"]=='317890')]
+    print(tableTemp)
+    print(tableTemp["LATE DELIVERY DATE"].iloc[1])
+    if (tableTemp["LATE DELIVERY DATE"].iloc[2]):
+        print("None")
+    else:
+        print("Exists")
+    
 
     #print(tableTemp)
     # if (not tableTemp["LATE DELIVERY DATE"].iloc[12] =='nan'):
